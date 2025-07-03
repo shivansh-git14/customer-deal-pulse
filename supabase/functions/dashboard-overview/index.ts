@@ -154,7 +154,7 @@ Deno.serve(async (req) => {
     const { data: managersData } = await supabase
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name')
-      .in('sales_rep_id', [1, 2, 3]) // Based on our data: John Smith, Sarah Johnson, Michael Chen manage teams
+      .is('sales_rep_manager_id', null)
       .eq('is_active', true);
 
     const response = {
