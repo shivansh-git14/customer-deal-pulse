@@ -17,25 +17,22 @@ All colors MUST be HSL.
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 213 66% 19%;  /* #003f5c */
+    --primary: 212 100% 18%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 269 34% 43%;  /* #7a5195 */
+    --secondary: 267 35% 43%;
     --secondary-foreground: 0 0% 100%;
 
     --muted: 210 40% 96.1%;
     --muted-foreground: 215.4 16.3% 46.9%;
 
-    --accent: 350 87% 67%;  /* #ef5675 */
+    --accent: 350 87% 67%;
     --accent-foreground: 0 0% 100%;
 
-    --warning: 36 100% 50%;  /* #ffa600 */
-    --warning-foreground: 0 0% 100%;
-
-    --chart-1: 213 66% 19%;  /* #003f5c */
-    --chart-2: 269 34% 43%;  /* #7a5195 */
-    --chart-3: 350 87% 67%;  /* #ef5675 */
-    --chart-4: 36 100% 50%;  /* #ffa600 */
+    --chart-primary: 212 100% 18%;
+    --chart-secondary: 267 35% 43%;
+    --chart-accent: 350 87% 67%;
+    --chart-warning: 36 100% 50%;
 
     --destructive: 0 100% 50%;
     --destructive-foreground: 0 0% 100%;
@@ -73,25 +70,22 @@ All colors MUST be HSL.
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 213 66% 25%;  /* #003f5c - slightly lighter for dark mode */
+    --primary: 212 100% 25%;
     --primary-foreground: 210 40% 98%;
 
-    --secondary: 269 34% 50%;  /* #7a5195 - slightly lighter for dark mode */
+    --secondary: 267 35% 50%;
     --secondary-foreground: 210 40% 98%;
 
     --muted: 217.2 32.6% 17.5%;
     --muted-foreground: 215 20.2% 65.1%;
 
-    --accent: 350 87% 70%;  /* #ef5675 - slightly lighter for dark mode */
+    --accent: 350 87% 70%;
     --accent-foreground: 210 40% 98%;
 
-    --warning: 36 100% 60%;  /* #ffa600 - slightly lighter for dark mode */
-    --warning-foreground: 210 40% 98%;
-
-    --chart-1: 213 66% 25%;  /* #003f5c */
-    --chart-2: 269 34% 50%;  /* #7a5195 */
-    --chart-3: 350 87% 70%;  /* #ef5675 */
-    --chart-4: 36 100% 60%;  /* #ffa600 */
+    --chart-primary: 212 100% 25%;
+    --chart-secondary: 267 35% 50%;
+    --chart-accent: 350 87% 70%;
+    --chart-warning: 36 100% 60%;
 
     --destructive: 0 100% 60%;
     --destructive-foreground: 210 40% 98%;

@@ -1,11 +1,12 @@
 
 import { useState } from 'react';
-import { EnhancedFilters } from '@/components/dashboard/EnhancedFilters';
-import { DashboardTabs } from '@/components/dashboard/DashboardTabs';
+import { DateRangeSlider } from '@/components/dashboard/DateRangeSlider';
+import { OverviewMetrics } from '@/components/dashboard/OverviewMetrics';
+import { CriticalAlerts } from '@/components/dashboard/CriticalAlerts';
 import { useDashboardData, DashboardFilters as FiltersType } from '@/hooks/useDashboardData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BarChart3 } from 'lucide-react';
+import { BarChart3, TrendingUp } from 'lucide-react';
 
 const Index = () => {
   const [filters, setFilters] = useState<FiltersType>({
@@ -44,10 +45,10 @@ const Index = () => {
           </div>
 
           <div className="space-y-6">
-            {/* Enhanced Filters */}
+            {/* Filters */}
             <div>
               {data ? (
-                <EnhancedFilters
+                <DateRangeSlider
                   filters={filters}
                   onFiltersChange={setFilters}
                   availableManagers={data.availableManagers}
@@ -57,21 +58,31 @@ const Index = () => {
               ) : null}
             </div>
 
-            {/* Dashboard Tabs */}
-            <div>
-              {loading ? (
-                <div className="space-y-6">
-                  <Skeleton className="h-12 w-full rounded-lg" />
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    <Skeleton className="h-32 w-full rounded-lg" />
-                    <Skeleton className="h-32 w-full rounded-lg" />
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Metrics - Takes up 2/3 of the width */}
+              <div className="lg:col-span-2">
+                {loading ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Skeleton className="h-32 w-full rounded-lg" />
+                      <Skeleton className="h-32 w-full rounded-lg" />
+                    </div>
                     <Skeleton className="h-32 w-full rounded-lg" />
                   </div>
-                  <Skeleton className="h-64 w-full rounded-lg" />
-                </div>
-              ) : data ? (
-                <DashboardTabs data={data} filters={filters} />
-              ) : null}
+                ) : data ? (
+                  <OverviewMetrics data={data} filters={filters} />
+                ) : null}
+              </div>
+
+              {/* Critical Alerts - Takes up 1/3 of the width */}
+              <div className="lg:col-span-1">
+                {loading ? (
+                  <Skeleton className="h-96 w-full rounded-lg" />
+                ) : data ? (
+                  <CriticalAlerts alerts={data.criticalAlerts} />
+                ) : null}
+              </div>
             </div>
           </div>
         </div>
