@@ -25,18 +25,19 @@ export const DataImporter = () => {
   const handleImportData = async () => {
     setIsImporting(true);
     try {
-      // For now, we'll import the data directly using Supabase client
-      // In a production app, you'd use the edge function
-      await importSampleData();
+      const { data, error } = await supabase.functions.invoke('import-sales-data');
+      
+      if (error) throw error;
       
       setImportResult({
         success: true,
-        message: "Sample data imported successfully!"
+        message: data.message,
+        results: data.imported
       });
       
       toast({
         title: "Import Complete",
-        description: "Sample CSV data has been imported into your database.",
+        description: `Successfully imported ${Object.values(data.imported).reduce((a: number, b: number) => a + b, 0)} records`,
       });
     } catch (error: any) {
       setImportResult({
@@ -52,53 +53,6 @@ export const DataImporter = () => {
     } finally {
       setIsImporting(false);
     }
-  };
-
-  const importSampleData = async () => {
-    // Sample data import - first few rows from each CSV
-    const salesReps = [
-      {
-        sales_rep_id: 1,
-        sales_rep_name: "John Smith",
-        sales_rep_manager_id: null,
-        hire_date: "2020-01-15",
-        termination_date: null,
-        is_active: true
-      },
-      {
-        sales_rep_id: 2,
-        sales_rep_name: "Sarah Johnson",
-        sales_rep_manager_id: 1,
-        hire_date: "2021-03-22",
-        termination_date: null,
-        is_active: true
-      }
-    ];
-
-    const customers = [
-      {
-        customer_id: 1,
-        customer_name: "Acme Corporation",
-        assignment_dt: "2023-01-15",
-        customer_lifecycle_stage: "Newly Acquired",
-        customer_industry: "Technology",
-        decision_maker: "John Doe",
-        first_participation_date: "2023-02-01"
-      },
-      {
-        customer_id: 2,
-        customer_name: "Global Solutions Inc",
-        assignment_dt: "2023-01-20",
-        customer_lifecycle_stage: "Loyal",
-        customer_industry: "Manufacturing",
-        decision_maker: "Jane Smith",
-        first_participation_date: "2023-01-25"
-      }
-    ];
-
-    // Insert sample data
-    await supabase.from('sales_reps').upsert(salesReps);
-    await supabase.from('customers').upsert(customers);
   };
 
   const executeQuery = async () => {
