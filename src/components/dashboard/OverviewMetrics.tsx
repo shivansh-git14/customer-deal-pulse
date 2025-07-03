@@ -1,7 +1,8 @@
 
 import { useState } from 'react';
 import { MetricCard } from './MetricCard';
-import { RevenueChart } from './RevenueChart';
+import { RevenueChartModal } from './RevenueChartModal';
+import { DealSizeChartModal } from './DealSizeChartModal';
 import { DashboardData, DashboardFilters } from '@/hooks/useDashboardData';
 
 interface OverviewMetricsProps {
@@ -12,6 +13,7 @@ interface OverviewMetricsProps {
 export const OverviewMetrics = ({ data, filters }: OverviewMetricsProps) => {
   const { overallRevenue, bestPerformer, avgDealSize } = data;
   const [showRevenueChart, setShowRevenueChart] = useState(false);
+  const [showDealSizeChart, setShowDealSizeChart] = useState(false);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
@@ -40,12 +42,17 @@ export const OverviewMetrics = ({ data, filters }: OverviewMetricsProps) => {
 
   return (
     <div className="space-y-6">
-      {showRevenueChart && (
-        <RevenueChart 
-          filters={filters} 
-          onClose={() => setShowRevenueChart(false)} 
-        />
-      )}
+      <RevenueChartModal 
+        isOpen={showRevenueChart}
+        onClose={() => setShowRevenueChart(false)}
+        filters={filters}
+      />
+      
+      <DealSizeChartModal 
+        isOpen={showDealSizeChart}
+        onClose={() => setShowDealSizeChart(false)}
+        filters={filters}
+      />
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Overall Revenue */}
@@ -65,6 +72,8 @@ export const OverviewMetrics = ({ data, filters }: OverviewMetricsProps) => {
             value={formatCurrency(avgDealSize)}
             subtitle="Across all closed deals"
             trend="neutral"
+            onClick={() => setShowDealSizeChart(true)}
+            isClickable={true}
           />
         </div>
 
