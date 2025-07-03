@@ -1,3 +1,4 @@
+
 import { MetricCard } from './MetricCard';
 import { DashboardData } from '@/hooks/useDashboardData';
 
@@ -27,6 +28,12 @@ export const OverviewMetrics = ({ data }: OverviewMetricsProps) => {
     return 'down';
   };
 
+  const getPerformanceTrend = (percentTarget: number) => {
+    if (percentTarget >= 100) return 'up';
+    if (percentTarget >= 80) return 'neutral';
+    return 'down';
+  };
+
   return (
     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
       {/* Overall Revenue */}
@@ -42,10 +49,10 @@ export const OverviewMetrics = ({ data }: OverviewMetricsProps) => {
         title="Best Performer"
         value={bestPerformer ? bestPerformer.sales_rep_name : 'No data'}
         subtitle={bestPerformer 
-          ? `${formatPercentage(bestPerformer.conversionRate)} conversion rate (${bestPerformer.wonDeals}/${bestPerformer.totalDeals} deals won)`
+          ? `${formatPercentage(bestPerformer.percentTarget)} of target (${formatCurrency(bestPerformer.revenue)}/${formatCurrency(bestPerformer.target)})`
           : 'No performance data available'
         }
-        trend={bestPerformer && bestPerformer.conversionRate > 50 ? 'up' : bestPerformer ? 'neutral' : undefined}
+        trend={bestPerformer ? getPerformanceTrend(bestPerformer.percentTarget) : undefined}
       />
 
       {/* Average Deal Size */}

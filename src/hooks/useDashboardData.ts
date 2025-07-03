@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -5,6 +6,14 @@ export interface DashboardFilters {
   startDate?: string;
   endDate?: string;
   salesManagerId?: number;
+}
+
+export interface CriticalAlert {
+  deal_id: number;
+  customer_name: string;
+  sales_rep_name: string;
+  deal_stage: string;
+  revenueAtRisk: number;
 }
 
 export interface DashboardData {
@@ -16,11 +25,12 @@ export interface DashboardData {
   bestPerformer: {
     sales_rep_id: number;
     sales_rep_name: string;
-    totalDeals: number;
-    wonDeals: number;
-    conversionRate: number;
+    revenue: number;
+    target: number;
+    percentTarget: number;
   } | null;
   avgDealSize: number;
+  criticalAlerts: CriticalAlert[];
   availableManagers: Array<{
     sales_rep_id: number;
     sales_rep_name: string;

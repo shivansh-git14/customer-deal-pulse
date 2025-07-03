@@ -1,3 +1,4 @@
+
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
 const corsHeaders = {
@@ -27,6 +28,18 @@ Deno.serve(async (req) => {
     
     console.log('Dashboard overview request with filters:', filters);
 
+    // Get team members based on sales manager filter
+    let teamRepIds: number[] = [];
+    if (filters.salesManagerId) {
+      const { data: teamReps } = await supabase
+        .from('sales_reps')
+        .select('sales_rep_id')
+        .eq('sales_rep_manager_id', filters.salesManagerId);
+      
+      teamRepIds = teamReps?.map(rep => rep.sales_rep_id) || [];
+      console.log('Team rep IDs for manager', filters.salesManagerId, ':', teamRepIds);
+    }
+
     // 1. Calculate Overall Revenue and Target Completion
     let revenueQuery = supabase
       .from('revenue')
@@ -46,14 +59,7 @@ Deno.serve(async (req) => {
 
     // Filter by sales manager if specified
     let filteredRevenueData = revenueData;
-    if (filters.salesManagerId) {
-      const { data: teamReps } = await supabase
-        .from('sales_reps')
-        .select('sales_rep_id')
-        .eq('sales_rep_manager_id', filters.salesManagerId);
-      
-      const teamRepIds = teamReps?.map(rep => rep.sales_rep_id) || [];
-      console.log('Team rep IDs for manager', filters.salesManagerId, ':', teamRepIds);
+    if (filters.salesManagerId && teamRepIds.length > 0) {
       filteredRevenueData = revenueData?.filter(rev => teamRepIds.includes(rev.sales_rep)) || [];
     }
 
@@ -79,13 +85,7 @@ Deno.serve(async (req) => {
 
     // Filter targets by sales manager if specified
     let filteredTargetsData = targetsData;
-    if (filters.salesManagerId) {
-      const { data: teamReps } = await supabase
-        .from('sales_reps')
-        .select('sales_rep_id')
-        .eq('sales_rep_manager_id', filters.salesManagerId);
-      
-      const teamRepIds = teamReps?.map(rep => rep.sales_rep_id) || [];
+    if (filters.salesManagerId && teamRepIds.length > 0) {
       filteredTargetsData = targetsData?.filter(target => teamRepIds.includes(target.sales_rep_id)) || [];
     }
 
@@ -94,19 +94,12 @@ Deno.serve(async (req) => {
 
     console.log('Total target:', totalTarget, 'Completion:', targetCompletion);
 
-    // 2. Find Best Performer by Conversion Rate
+    // 2. Find Best Performer by % Target (revenue/target ratio)
     const { data: salesRepsData } = await supabase
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name, sales_rep_manager_id');
 
-    // Get deals data for conversion calculation
-    const { data: dealsData } = await supabase
-      .from('deals_current')
-      .select('sales_rep_id, deal_stage, customer_id');
-
-    console.log('Deals data:', dealsData?.length || 0, 'records');
-
-    // Calculate conversion rates for each sales rep
+    // Calculate % target for each sales rep
     const repPerformance = salesRepsData?.map(rep => {
       // Only include sales reps who have a manager (not the managers themselves)
       if (!rep.sales_rep_manager_id) {
@@ -118,29 +111,31 @@ Deno.serve(async (req) => {
         return null;
       }
 
-      const repDeals = dealsData?.filter(deal => deal.sales_rep_id === rep.sales_rep_id) || [];
-      const totalDeals = repDeals.length;
-      const wonDeals = repDeals.filter(deal => 
-        deal.deal_stage === 'won' || 
-        deal.deal_stage === 'closed won' || 
-        deal.deal_stage === 'closed-won'
-      ).length;
-      const conversionRate = totalDeals > 0 ? (wonDeals / totalDeals) * 100 : 0;
+      // Calculate rep's revenue for the period
+      const repRevenue = filteredRevenueData?.filter(rev => rev.sales_rep === rep.sales_rep_id)
+        .reduce((sum, rev) => sum + (Number(rev.revenue) || 0), 0) || 0;
+
+      // Calculate rep's target for the period
+      const repTarget = filteredTargetsData?.filter(target => target.sales_rep_id === rep.sales_rep_id)
+        .reduce((sum, target) => sum + (Number(target.target_value) || 0), 0) || 0;
+
+      // Calculate % target
+      const percentTarget = repTarget > 0 ? (repRevenue / repTarget) * 100 : 0;
 
       return {
         sales_rep_id: rep.sales_rep_id,
         sales_rep_name: rep.sales_rep_name,
-        totalDeals,
-        wonDeals,
-        conversionRate
+        revenue: repRevenue,
+        target: repTarget,
+        percentTarget
       };
     }).filter(Boolean) || [];
 
     const bestPerformer = repPerformance.reduce((best, current) => {
-      return (current?.conversionRate || 0) > (best?.conversionRate || 0) ? current : best;
+      return (current?.percentTarget || 0) > (best?.percentTarget || 0) ? current : best;
     }, repPerformance[0]);
 
-    console.log('Best performer:', bestPerformer);
+    console.log('Best performer by % target:', bestPerformer);
 
     // 3. Calculate Average Deal Size - Use revenue data directly
     const dealValues = filteredRevenueData?.map(rev => Number(rev.revenue) || 0) || [];
@@ -149,6 +144,38 @@ Deno.serve(async (req) => {
       : 0;
 
     console.log('Average deal size:', avgDealSize, 'from', dealValues.length, 'deals');
+
+    // 4. Get Critical Alerts - High Risk Deals
+    let dealsQuery = supabase
+      .from('deals_current')
+      .select(`
+        deal_id,
+        deal_stage,
+        max_deal_potential,
+        is_high_risk,
+        sales_rep_id,
+        customer_id,
+        sales_reps!inner(sales_rep_name, sales_rep_manager_id),
+        customers!inner(customer_name)
+      `)
+      .eq('is_high_risk', 'Yes');
+
+    const { data: highRiskDeals } = await dealsQuery;
+
+    // Filter high risk deals by manager if specified
+    let filteredHighRiskDeals = highRiskDeals;
+    if (filters.salesManagerId && teamRepIds.length > 0) {
+      filteredHighRiskDeals = highRiskDeals?.filter(deal => 
+        teamRepIds.includes(deal.sales_rep_id)
+      ) || [];
+    }
+
+    // Sort by max_deal_potential (revenue at risk) descending
+    const criticalAlerts = filteredHighRiskDeals?.sort((a, b) => 
+      (Number(b.max_deal_potential) || 0) - (Number(a.max_deal_potential) || 0)
+    ).slice(0, 5) || []; // Show top 5 high-risk deals
+
+    console.log('Critical alerts (high risk deals):', criticalAlerts.length);
 
     // Get sales managers for filter dropdown - these are people who manage others
     const { data: managersData } = await supabase
@@ -165,8 +192,21 @@ Deno.serve(async (req) => {
           target: totalTarget,
           completionPercentage: targetCompletion
         },
-        bestPerformer: bestPerformer || null,
+        bestPerformer: bestPerformer ? {
+          sales_rep_id: bestPerformer.sales_rep_id,
+          sales_rep_name: bestPerformer.sales_rep_name,
+          revenue: bestPerformer.revenue,
+          target: bestPerformer.target,
+          percentTarget: bestPerformer.percentTarget
+        } : null,
         avgDealSize: avgDealSize,
+        criticalAlerts: criticalAlerts.map(deal => ({
+          deal_id: deal.deal_id,
+          customer_name: deal.customers?.customer_name || 'Unknown',
+          sales_rep_name: deal.sales_reps?.sales_rep_name || 'Unknown',
+          deal_stage: deal.deal_stage,
+          revenueAtRisk: Number(deal.max_deal_potential) || 0
+        })),
         availableManagers: managersData || []
       }
     };
