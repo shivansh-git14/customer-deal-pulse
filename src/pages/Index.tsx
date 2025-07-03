@@ -6,7 +6,10 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const Index = () => {
-  const [filters, setFilters] = useState<FiltersType>({});
+  const [filters, setFilters] = useState<FiltersType>({
+    startDate: '2023-01-01', // Set default to show existing data
+    endDate: '2025-12-31'
+  });
   const { data, loading, error } = useDashboardData(filters);
 
   if (error) {

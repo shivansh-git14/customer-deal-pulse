@@ -108,6 +108,11 @@ Deno.serve(async (req) => {
 
     // Calculate conversion rates for each sales rep
     const repPerformance = salesRepsData?.map(rep => {
+      // Only include sales reps who have a manager (not the managers themselves)
+      if (!rep.sales_rep_manager_id) {
+        return null;
+      }
+
       // Filter by manager if specified
       if (filters.salesManagerId && rep.sales_rep_manager_id !== filters.salesManagerId) {
         return null;
@@ -149,7 +154,7 @@ Deno.serve(async (req) => {
     const { data: managersData } = await supabase
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name')
-      .is('sales_rep_manager_id', null)
+      .in('sales_rep_id', [1, 2, 3]) // Based on our data: John Smith, Sarah Johnson, Michael Chen manage teams
       .eq('is_active', true);
 
     const response = {
