@@ -29,9 +29,10 @@ SUM(revenue.revenue) WHERE participation_dt BETWEEN start_date AND end_date
 ```
 
 **Associated Files:**
-- `supabase/functions/dashboard-overview/index.ts` (lines 45-52)
-- `src/hooks/useDashboardData.ts` (data fetching)
-- `src/components/dashboard/OverviewMetrics.tsx` (display logic)
+- `supabase/functions/dashboard-overview/index.ts` (revenue calculation logic)
+- `src/hooks/useDashboardData.ts` (data fetching and state management)
+- `src/components/dashboard/OverviewMetrics.tsx` (metric display and formatting)
+- `src/components/dashboard/RevenueChartModal.tsx` (detailed revenue visualization)
 
 **Category:** Revenue
 
@@ -92,9 +93,10 @@ AVG(revenue.revenue) for the selected period
 ```
 
 **Associated Files:**
-- `supabase/functions/dashboard-overview/index.ts` (lines 91-97)
-- `src/hooks/useDashboardData.ts` (data fetching)
-- `src/components/dashboard/OverviewMetrics.tsx` (display logic)
+- `supabase/functions/dashboard-overview/index.ts` (average calculation logic)
+- `src/hooks/useDashboardData.ts` (data fetching and state management)
+- `src/components/dashboard/OverviewMetrics.tsx` (metric display and formatting)
+- `src/components/dashboard/DealSizeChartModal.tsx` (detailed deal size visualization)
 
 **Category:** Revenue
 
@@ -193,7 +195,9 @@ max_deal_potential value for deals marked as high risk
 - **Backend Logic:** `supabase/functions/dashboard-overview/index.ts`
 - **Frontend Data Hooks:** `src/hooks/useDashboardData.ts`
 - **UI Components:** `src/components/dashboard/` directory
-- **Filter Component:** `src/components/dashboard/DashboardFilters.tsx`
+- **Filter Component:** `src/components/dashboard/DateRangeSlider.tsx`
+- **Chart Modals:** `src/components/dashboard/RevenueChartModal.tsx`, `src/components/dashboard/DealSizeChartModal.tsx`
+- **Design System:** `src/index.css` (color palette and theme tokens)
 
 ### Edge Function Logs
 Monitor the dashboard-overview edge function for query performance and errors in the Supabase dashboard.

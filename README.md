@@ -1,8 +1,26 @@
-# Welcome to your Lovable project
+# Sales RCA Dashboard
+
+A comprehensive sales performance management dashboard built with modern web technologies, providing real-time insights into revenue, sales team performance, and critical business alerts.
 
 ## Project info
 
 **URL**: https://lovable.dev/projects/7b2335a9-9271-41a9-95e1-a05290a75ea0
+
+## Features
+
+- **Revenue Analytics**: Track revenue performance against targets with interactive visualizations
+- **Sales Team Performance**: Monitor individual and team performance metrics
+- **Critical Alerts**: Identify high-risk deals and potential revenue threats
+- **Interactive Filtering**: Advanced date range slider and sales manager filters
+- **Responsive Design**: Optimized for desktop and mobile viewing
+- **Real-time Data**: Connected to Supabase for live data updates
+
+## Dashboard Components
+
+- **Overview Metrics**: Key performance indicators with trend analysis
+- **Interactive Charts**: Revenue and deal size visualization with modal popups
+- **Critical Alerts Panel**: High-priority deals requiring attention
+- **Advanced Filters**: Date range slider and manager selection with reset functionality
 
 ## How can I edit this code?
 
@@ -54,11 +72,24 @@ npm run dev
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+- **Vite** - Fast build tool and development server
+- **TypeScript** - Type-safe JavaScript development
+- **React 18** - Modern React with hooks and functional components
+- **Supabase** - Backend-as-a-Service for database and edge functions
+- **shadcn/ui** - Modern, accessible UI component library
+- **Tailwind CSS** - Utility-first CSS framework with custom design system
+- **Recharts** - Interactive chart library for data visualization
+- **Lucide React** - Beautiful, customizable icons
+
+## Database Schema
+
+The dashboard connects to a Supabase database with the following key tables:
+- `sales_reps` - Sales representative information and hierarchy
+- `revenue` - Revenue transactions and participation dates
+- `targets` - Sales targets by representative and time period
+- `deals_current` - Current deal status and risk assessment
+- `customers` - Customer information and lifecycle stages
+- `events` - Sales activities and interactions
 
 ## How can I deploy this project?
 
