@@ -38,6 +38,8 @@ export const useDashboardData = (filters: DashboardFilters) => {
         setLoading(true);
         setError(null);
 
+        console.log('Fetching dashboard data with filters:', filters);
+
         const { data: result, error: functionError } = await supabase.functions.invoke(
           'dashboard-overview',
           {
@@ -45,14 +47,22 @@ export const useDashboardData = (filters: DashboardFilters) => {
           }
         );
 
+        console.log('Function response:', { result, functionError });
+
         if (functionError) {
-          throw new Error(functionError.message);
+          console.error('Function error details:', functionError);
+          throw new Error(`Function error: ${functionError.message}`);
+        }
+
+        if (!result) {
+          throw new Error('No data returned from function');
         }
 
         if (!result.success) {
           throw new Error(result.error || 'Failed to fetch dashboard data');
         }
 
+        console.log('Dashboard data loaded successfully:', result.data);
         setData(result.data);
       } catch (err) {
         console.error('Dashboard data fetch error:', err);
