@@ -1,11 +1,12 @@
 
 import { useState } from 'react';
-import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
+import { DateRangeSlider } from '@/components/dashboard/DateRangeSlider';
 import { OverviewMetrics } from '@/components/dashboard/OverviewMetrics';
 import { CriticalAlerts } from '@/components/dashboard/CriticalAlerts';
 import { useDashboardData, DashboardFilters as FiltersType } from '@/hooks/useDashboardData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { BarChart3, TrendingUp } from 'lucide-react';
 
 const Index = () => {
   const [filters, setFilters] = useState<FiltersType>({
@@ -28,52 +29,60 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
       <div className="container mx-auto px-4 py-8">
         <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
-            <h1 className="text-4xl font-bold text-foreground mb-4">
-              Sales RCA Dashboard
-            </h1>
-            <p className="text-lg text-muted-foreground">
-              Comprehensive overview of sales performance and metrics
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <BarChart3 className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Sales RCA Dashboard
+              </h1>
+            </div>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive overview of sales performance with real-time analytics and insights
             </p>
           </div>
 
-          <div className="space-y-8">
+          <div className="space-y-6">
             {/* Filters */}
             <div>
               {data ? (
-                <DashboardFilters
+                <DateRangeSlider
                   filters={filters}
                   onFiltersChange={setFilters}
                   availableManagers={data.availableManagers}
                 />
               ) : loading ? (
-                <Skeleton className="h-40 w-full" />
+                <Skeleton className="h-32 w-full rounded-lg" />
               ) : null}
             </div>
 
-            {/* Metrics */}
-            <div>
-              {loading ? (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Skeleton className="h-32 w-full" />
-                  <Skeleton className="h-32 w-full" />
-                  <Skeleton className="h-32 w-full" />
-                </div>
-              ) : data ? (
-                <OverviewMetrics data={data} />
-              ) : null}
-            </div>
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Metrics - Takes up 2/3 of the width */}
+              <div className="lg:col-span-2">
+                {loading ? (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Skeleton className="h-32 w-full rounded-lg" />
+                      <Skeleton className="h-32 w-full rounded-lg" />
+                    </div>
+                    <Skeleton className="h-32 w-full rounded-lg" />
+                  </div>
+                ) : data ? (
+                  <OverviewMetrics data={data} filters={filters} />
+                ) : null}
+              </div>
 
-            {/* Critical Alerts */}
-            <div>
-              {loading ? (
-                <Skeleton className="h-64 w-full" />
-              ) : data ? (
-                <CriticalAlerts alerts={data.criticalAlerts} />
-              ) : null}
+              {/* Critical Alerts - Takes up 1/3 of the width */}
+              <div className="lg:col-span-1">
+                {loading ? (
+                  <Skeleton className="h-96 w-full rounded-lg" />
+                ) : data ? (
+                  <CriticalAlerts alerts={data.criticalAlerts} />
+                ) : null}
+              </div>
             </div>
           </div>
         </div>

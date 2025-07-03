@@ -8,11 +8,13 @@ interface MetricCardProps {
   trend?: 'up' | 'down' | 'neutral';
   icon?: React.ReactNode;
   className?: string;
+  onClick?: () => void;
+  isClickable?: boolean;
 }
 
-export const MetricCard = ({ title, value, subtitle, trend, icon, className = '' }: MetricCardProps) => {
+export const MetricCard = ({ title, value, subtitle, trend, icon, className = '', onClick, isClickable = false }: MetricCardProps) => {
   const getTrendIcon = () => {
-    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-green-500" />;
+    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-emerald-500" />;
     if (trend === 'down') return <TrendingDown className="h-4 w-4 text-red-500" />;
     return null;
   };
@@ -32,7 +34,10 @@ export const MetricCard = ({ title, value, subtitle, trend, icon, className = ''
   };
 
   return (
-    <Card className={`w-full ${className}`}>
+    <Card 
+      className={`w-full transition-all duration-200 ${isClickable ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/20' : ''} ${className}`}
+      onClick={onClick}
+    >
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium text-muted-foreground">
           {title}
@@ -43,10 +48,15 @@ export const MetricCard = ({ title, value, subtitle, trend, icon, className = ''
         </div>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">{formatValue(value)}</div>
+        <div className="text-2xl font-bold text-foreground">{formatValue(value)}</div>
         {subtitle && (
           <p className="text-xs text-muted-foreground mt-1">
             {subtitle}
+          </p>
+        )}
+        {isClickable && (
+          <p className="text-xs text-primary mt-2 font-medium">
+            Click to view trend
           </p>
         )}
       </CardContent>
