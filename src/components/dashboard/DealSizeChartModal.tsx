@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardFilters } from '@/hooks/useDashboardData';
@@ -18,11 +18,11 @@ interface MonthlyDealData {
 }
 
 const DEAL_STAGE_COLORS = [
-  "hsl(var(--primary))",
-  "hsl(var(--accent))", 
+  "hsl(var(--chart-primary))",
+  "hsl(var(--chart-secondary))", 
+  "hsl(var(--chart-accent))",
+  "hsl(var(--chart-warning))",
   "hsl(var(--destructive))",
-  "220 70% 40%",
-  "160 60% 35%",
 ];
 
 export const DealSizeChartModal = ({ isOpen, onClose, filters }: DealSizeChartModalProps) => {
@@ -155,11 +155,11 @@ export const DealSizeChartModal = ({ isOpen, onClose, filters }: DealSizeChartMo
           <div className="space-y-6">
             <ChartContainer config={chartConfig} className="min-h-[400px]">
               <ResponsiveContainer width="100%" height={400}>
-                <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <AreaChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <defs>
                     {dealStages.map((stage, index) => (
                       <linearGradient key={stage} id={`gradient-${stage}`} x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor={DEAL_STAGE_COLORS[index % DEAL_STAGE_COLORS.length]} stopOpacity={0.8}/>
+                        <stop offset="5%" stopColor={DEAL_STAGE_COLORS[index % DEAL_STAGE_COLORS.length]} stopOpacity={0.6}/>
                         <stop offset="95%" stopColor={DEAL_STAGE_COLORS[index % DEAL_STAGE_COLORS.length]} stopOpacity={0.1}/>
                       </linearGradient>
                     ))}
@@ -188,26 +188,17 @@ export const DealSizeChartModal = ({ isOpen, onClose, filters }: DealSizeChartMo
                   />
                   <Legend />
                   {dealStages.map((stage, index) => (
-                    <Line 
+                    <Area 
                       key={stage}
                       type="monotone" 
                       dataKey={stage} 
                       stroke={DEAL_STAGE_COLORS[index % DEAL_STAGE_COLORS.length]}
-                      strokeWidth={3}
-                      dot={{ 
-                        fill: DEAL_STAGE_COLORS[index % DEAL_STAGE_COLORS.length], 
-                        strokeWidth: 2, 
-                        r: 4 
-                      }}
-                      activeDot={{ 
-                        r: 6, 
-                        stroke: DEAL_STAGE_COLORS[index % DEAL_STAGE_COLORS.length], 
-                        strokeWidth: 2,
-                        fill: "hsl(var(--background))"
-                      }}
+                      strokeWidth={2}
+                      fill={`url(#gradient-${stage})`}
+                      fillOpacity={0.4}
                     />
                   ))}
-                </LineChart>
+                </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>
           </div>

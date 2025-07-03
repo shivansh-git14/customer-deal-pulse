@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ComposedChart } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from '@/components/ui/chart';
 import { supabase } from '@/integrations/supabase/client';
 import { DashboardFilters } from '@/hooks/useDashboardData';
@@ -16,21 +16,16 @@ interface MonthlyData {
   month: string;
   revenue: number;
   target: number;
-  dealVolume: number;
 }
 
 const chartConfig = {
   revenue: {
     label: "Revenue",
-    color: "hsl(var(--primary))",
+    color: "hsl(var(--chart-primary))",
   },
   target: {
     label: "Target", 
-    color: "hsl(var(--accent))",
-  },
-  dealVolume: {
-    label: "Deals Closed",
-    color: "hsl(var(--destructive))",
+    color: "hsl(var(--chart-secondary))",
   },
 };
 
@@ -92,16 +87,15 @@ export const RevenueChartModal = ({ isOpen, onClose, filters }: RevenueChartModa
         }
 
         // Group data by month
-        const monthlyMap = new Map<string, { revenue: number; target: number; dealVolume: number }>();
+        const monthlyMap = new Map<string, { revenue: number; target: number }>();
 
         // Process revenue data by month
         filteredRevenueData.forEach(item => {
           const date = new Date(item.participation_dt);
           const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
           
-          const existing = monthlyMap.get(monthKey) || { revenue: 0, target: 0, dealVolume: 0 };
+          const existing = monthlyMap.get(monthKey) || { revenue: 0, target: 0 };
           existing.revenue += Number(item.revenue) || 0;
-          existing.dealVolume += 1;
           monthlyMap.set(monthKey, existing);
         });
 
@@ -110,7 +104,7 @@ export const RevenueChartModal = ({ isOpen, onClose, filters }: RevenueChartModa
           const date = new Date(item.target_month);
           const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
           
-          const existing = monthlyMap.get(monthKey) || { revenue: 0, target: 0, dealVolume: 0 };
+          const existing = monthlyMap.get(monthKey) || { revenue: 0, target: 0 };
           existing.target += Number(item.target_value) || 0;
           monthlyMap.set(monthKey, existing);
         });
@@ -161,11 +155,15 @@ export const RevenueChartModal = ({ isOpen, onClose, filters }: RevenueChartModa
           <div className="space-y-6">
             <ChartContainer config={chartConfig} className="min-h-[400px]">
               <ResponsiveContainer width="100%" height={400}>
-                <ComposedChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                <LineChart data={data} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                   <defs>
                     <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="var(--color-revenue)" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="var(--color-revenue)" stopOpacity={0.1}/>
+                      <stop offset="5%" stopColor="hsl(var(--chart-primary))" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="hsl(var(--chart-primary))" stopOpacity={0.1}/>
+                    </linearGradient>
+                    <linearGradient id="targetGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="hsl(var(--chart-secondary))" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="hsl(var(--chart-secondary))" stopOpacity={0.1}/>
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
@@ -176,17 +174,9 @@ export const RevenueChartModal = ({ isOpen, onClose, filters }: RevenueChartModa
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <YAxis 
-                    yAxisId="currency"
                     stroke="hsl(var(--muted-foreground))"
                     tick={{ fontSize: 12 }}
                     tickFormatter={formatCurrency}
-                    axisLine={{ stroke: "hsl(var(--border))" }}
-                  />
-                  <YAxis 
-                    yAxisId="volume"
-                    orientation="right"
-                    stroke="hsl(var(--muted-foreground))"
-                    tick={{ fontSize: 12 }}
                     axisLine={{ stroke: "hsl(var(--border))" }}
                   />
                   <ChartTooltip 
@@ -194,40 +184,29 @@ export const RevenueChartModal = ({ isOpen, onClose, filters }: RevenueChartModa
                       <ChartTooltipContent 
                         className="bg-background/90 backdrop-blur border border-border/50 shadow-lg"
                         labelFormatter={(value) => `Month: ${value}`}
-                        formatter={(value, name) => [
-                          name === 'dealVolume' ? `${value} deals` : formatCurrency(Number(value)),
-                          name === 'dealVolume' ? 'Deals Closed' : name === 'revenue' ? 'Revenue' : 'Target'
-                        ]}
+                        formatter={(value, name) => [formatCurrency(Number(value)), name === 'revenue' ? 'Revenue' : 'Target']}
                       />
                     }
                   />
                   <Legend />
                   <Line 
-                    yAxisId="currency"
                     type="monotone" 
                     dataKey="revenue" 
-                    stroke="var(--color-revenue)" 
-                    strokeWidth={4}
-                    dot={{ fill: "var(--color-revenue)", strokeWidth: 3, r: 6 }}
-                    activeDot={{ r: 8, stroke: "var(--color-revenue)", strokeWidth: 3, fill: "hsl(var(--background))" }}
+                    stroke="hsl(var(--chart-primary))" 
+                    strokeWidth={3}
+                    dot={{ fill: "hsl(var(--chart-primary))", strokeWidth: 2, r: 5 }}
+                    activeDot={{ r: 7, stroke: "hsl(var(--chart-primary))", strokeWidth: 2, fill: "hsl(var(--background))" }}
                   />
                   <Line 
-                    yAxisId="currency"
                     type="monotone" 
                     dataKey="target" 
-                    stroke="var(--color-target)" 
+                    stroke="hsl(var(--chart-secondary))" 
                     strokeWidth={3}
                     strokeDasharray="8 4"
-                    dot={{ fill: "var(--color-target)", strokeWidth: 2, r: 4 }}
+                    dot={{ fill: "hsl(var(--chart-secondary))", strokeWidth: 2, r: 4 }}
+                    activeDot={{ r: 6, stroke: "hsl(var(--chart-secondary))", strokeWidth: 2, fill: "hsl(var(--background))" }}
                   />
-                  <Bar 
-                    yAxisId="volume"
-                    dataKey="dealVolume" 
-                    fill="var(--color-dealVolume)"
-                    opacity={0.7}
-                    radius={[4, 4, 0, 0]}
-                  />
-                </ComposedChart>
+                </LineChart>
               </ResponsiveContainer>
             </ChartContainer>
           </div>

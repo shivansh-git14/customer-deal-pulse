@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
@@ -17,6 +17,7 @@ interface DateRangeSliderProps {
 
 export const DateRangeSlider = ({ filters, onFiltersChange, availableManagers }: DateRangeSliderProps) => {
   const [dateRange, setDateRange] = useState([0, 100]);
+  const [isUpdating, setIsUpdating] = useState(false);
   
   // Define min and max dates for the slider
   const minDate = new Date('2023-01-01');
@@ -46,17 +47,27 @@ export const DateRangeSlider = ({ filters, onFiltersChange, availableManagers }:
     }
   }, [filters.startDate, filters.endDate]);
 
+  const debouncedFilterChange = useCallback(
+    (values: number[]) => {
+      setTimeout(() => {
+        const startDate = convertSliderToDate(values[0]);
+        const endDate = convertSliderToDate(values[1]);
+        
+        onFiltersChange({
+          ...filters,
+          startDate,
+          endDate
+        });
+        setIsUpdating(false);
+      }, 500);
+    },
+    [filters, onFiltersChange]
+  );
+
   const handleSliderChange = (values: number[]) => {
     setDateRange(values);
-    
-    const startDate = convertSliderToDate(values[0]);
-    const endDate = convertSliderToDate(values[1]);
-    
-    onFiltersChange({
-      ...filters,
-      startDate,
-      endDate
-    });
+    setIsUpdating(true);
+    debouncedFilterChange(values);
   };
 
   const handleManagerChange = (value: string) => {
