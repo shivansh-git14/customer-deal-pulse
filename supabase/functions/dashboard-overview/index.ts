@@ -42,6 +42,8 @@ Deno.serve(async (req) => {
     const { data: revenueData, error: revenueError } = await revenueQuery;
     if (revenueError) throw revenueError;
 
+    console.log('Raw revenue data:', revenueData?.length || 0, 'records');
+
     // Filter by sales manager if specified
     let filteredRevenueData = revenueData;
     if (filters.salesManagerId) {
@@ -51,10 +53,12 @@ Deno.serve(async (req) => {
         .eq('sales_rep_manager_id', filters.salesManagerId);
       
       const teamRepIds = teamReps?.map(rep => rep.sales_rep_id) || [];
+      console.log('Team rep IDs for manager', filters.salesManagerId, ':', teamRepIds);
       filteredRevenueData = revenueData?.filter(rev => teamRepIds.includes(rev.sales_rep)) || [];
     }
 
-    const totalRevenue = filteredRevenueData?.reduce((sum, rev) => sum + (rev.revenue || 0), 0) || 0;
+    const totalRevenue = filteredRevenueData?.reduce((sum, rev) => sum + (Number(rev.revenue) || 0), 0) || 0;
+    console.log('Total revenue calculated:', totalRevenue);
 
     // Get targets for the same period
     let targetsQuery = supabase
@@ -71,6 +75,8 @@ Deno.serve(async (req) => {
     const { data: targetsData, error: targetsError } = await targetsQuery;
     if (targetsError) throw targetsError;
 
+    console.log('Raw targets data:', targetsData?.length || 0, 'records');
+
     // Filter targets by sales manager if specified
     let filteredTargetsData = targetsData;
     if (filters.salesManagerId) {
@@ -83,8 +89,10 @@ Deno.serve(async (req) => {
       filteredTargetsData = targetsData?.filter(target => teamRepIds.includes(target.sales_rep_id)) || [];
     }
 
-    const totalTarget = filteredTargetsData?.reduce((sum, target) => sum + (target.target_value || 0), 0) || 0;
+    const totalTarget = filteredTargetsData?.reduce((sum, target) => sum + (Number(target.target_value) || 0), 0) || 0;
     const targetCompletion = totalTarget > 0 ? (totalRevenue / totalTarget) * 100 : 0;
+
+    console.log('Total target:', totalTarget, 'Completion:', targetCompletion);
 
     // 2. Find Best Performer by Conversion Rate
     const { data: salesRepsData } = await supabase
@@ -92,11 +100,11 @@ Deno.serve(async (req) => {
       .select('sales_rep_id, sales_rep_name, sales_rep_manager_id');
 
     // Get deals data for conversion calculation
-    let dealsQuery = supabase
+    const { data: dealsData } = await supabase
       .from('deals_current')
       .select('sales_rep_id, deal_stage, customer_id');
 
-    const { data: dealsData } = await dealsQuery;
+    console.log('Deals data:', dealsData?.length || 0, 'records');
 
     // Calculate conversion rates for each sales rep
     const repPerformance = salesRepsData?.map(rep => {
@@ -107,7 +115,11 @@ Deno.serve(async (req) => {
 
       const repDeals = dealsData?.filter(deal => deal.sales_rep_id === rep.sales_rep_id) || [];
       const totalDeals = repDeals.length;
-      const wonDeals = repDeals.filter(deal => deal.deal_stage === 'won' || deal.deal_stage === 'closed won').length;
+      const wonDeals = repDeals.filter(deal => 
+        deal.deal_stage === 'won' || 
+        deal.deal_stage === 'closed won' || 
+        deal.deal_stage === 'closed-won'
+      ).length;
       const conversionRate = totalDeals > 0 ? (wonDeals / totalDeals) * 100 : 0;
 
       return {
@@ -123,58 +135,21 @@ Deno.serve(async (req) => {
       return (current?.conversionRate || 0) > (best?.conversionRate || 0) ? current : best;
     }, repPerformance[0]);
 
-    // 3. Calculate Average Deal Size
-    const { data: dealsWithRevenue } = await supabase
-      .from('deals_current')
-      .select(`
-        deal_id,
-        sales_rep_id,
-        customer_id,
-        deal_stage,
-        revenue!inner(revenue, participation_dt)
-      `);
+    console.log('Best performer:', bestPerformer);
 
-    // Filter and calculate average deal size
-    let relevantDeals = dealsWithRevenue?.filter(deal => {
-      const hasRevenue = deal.revenue && Array.isArray(deal.revenue) && deal.revenue.length > 0;
-      if (!hasRevenue) return false;
-
-      // Filter by date if specified
-      if (filters.startDate || filters.endDate) {
-        return deal.revenue.some((rev: any) => {
-          const revDate = rev.participation_dt;
-          const afterStart = !filters.startDate || revDate >= filters.startDate;
-          const beforeEnd = !filters.endDate || revDate <= filters.endDate;
-          return afterStart && beforeEnd;
-        });
-      }
-      return true;
-    }) || [];
-
-    // Filter by sales manager if specified
-    if (filters.salesManagerId) {
-      const { data: teamReps } = await supabase
-        .from('sales_reps')
-        .select('sales_rep_id')
-        .eq('sales_rep_manager_id', filters.salesManagerId);
-      
-      const teamRepIds = teamReps?.map(rep => rep.sales_rep_id) || [];
-      relevantDeals = relevantDeals.filter(deal => teamRepIds.includes(deal.sales_rep_id));
-    }
-
-    const dealValues = relevantDeals.flatMap(deal => 
-      Array.isArray(deal.revenue) ? deal.revenue.map((rev: any) => rev.revenue || 0) : []
-    );
-    
+    // 3. Calculate Average Deal Size - Use revenue data directly
+    const dealValues = filteredRevenueData?.map(rev => Number(rev.revenue) || 0) || [];
     const avgDealSize = dealValues.length > 0 
       ? dealValues.reduce((sum, val) => sum + val, 0) / dealValues.length 
       : 0;
 
-    // Get sales managers for filter dropdown
+    console.log('Average deal size:', avgDealSize, 'from', dealValues.length, 'deals');
+
+    // Get sales managers for filter dropdown - these are people who manage others
     const { data: managersData } = await supabase
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name')
-      .not('sales_rep_manager_id', 'is', null)
+      .is('sales_rep_manager_id', null)
       .eq('is_active', true);
 
     const response = {
