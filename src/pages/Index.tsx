@@ -1,19 +1,65 @@
-import { DataImporter } from "@/components/DataImporter";
+import { useState } from 'react';
+import { DashboardFilters } from '@/components/dashboard/DashboardFilters';
+import { OverviewMetrics } from '@/components/dashboard/OverviewMetrics';
+import { useDashboardData, DashboardFilters as FiltersType } from '@/hooks/useDashboardData';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 const Index = () => {
+  const [filters, setFilters] = useState<FiltersType>({});
+  const { data, loading, error } = useDashboardData(filters);
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
+        <div className="container mx-auto px-4 py-8">
+          <Alert variant="destructive">
+            <AlertTitle>Error Loading Dashboard</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
       <div className="container mx-auto px-4 py-8">
-        <div className="max-w-4xl mx-auto">
+        <div className="max-w-7xl mx-auto">
           <div className="text-center mb-8">
             <h1 className="text-4xl font-bold text-foreground mb-4">
-              Sales Data Analytics Platform
+              Sales RCA Dashboard
             </h1>
             <p className="text-lg text-muted-foreground">
-              Convert your CSV sales data into a queryable SQL database
+              Comprehensive overview of sales performance and metrics
             </p>
           </div>
-          <DataImporter />
+
+          {/* Filters */}
+          <div className="mb-8">
+            {data ? (
+              <DashboardFilters
+                filters={filters}
+                onFiltersChange={setFilters}
+                availableManagers={data.availableManagers}
+              />
+            ) : loading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : null}
+          </div>
+
+          {/* Metrics */}
+          <div className="mb-8">
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+                <Skeleton className="h-32 w-full" />
+              </div>
+            ) : data ? (
+              <OverviewMetrics data={data} />
+            ) : null}
+          </div>
         </div>
       </div>
     </div>
