@@ -21,12 +21,12 @@ export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
   const totalAtRisk = alerts.reduce((sum, alert) => sum + alert.revenueAtRisk, 0);
 
   return (
-    <Card className="w-full h-fit">
+    <Card className="w-full h-fit border-destructive/20 bg-destructive/5">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center justify-between text-lg">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            Critical Alerts
+            <span className="text-destructive">Critical Alerts</span>
           </div>
           {alerts.length > 0 && (
             <div className="flex items-center gap-1 text-sm">
@@ -49,7 +49,7 @@ export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {alerts.slice(0, 8).map((alert, index) => (
-              <Alert key={alert.deal_id} variant="destructive" className="border-l-4 border-l-destructive transition-all hover:shadow-sm">
+              <Alert key={alert.deal_id} variant="destructive" className="border-l-4 border-l-destructive transition-all hover:shadow-sm border-destructive/30 bg-destructive/10">
                 <div className="flex items-center justify-between">
                   <div className="flex items-start gap-3 flex-1">
                     <TrendingDown className="h-4 w-4 mt-0.5 text-destructive flex-shrink-0" />

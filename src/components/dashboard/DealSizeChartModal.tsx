@@ -18,11 +18,11 @@ interface MonthlyDealData {
 }
 
 const DEAL_STAGE_COLORS = [
-  "hsl(var(--chart-1))",
-  "hsl(var(--chart-2))", 
-  "hsl(var(--chart-3))",
-  "hsl(var(--chart-4))",
-  "hsl(var(--chart-5))",
+  "hsl(var(--primary))",
+  "hsl(var(--accent))", 
+  "hsl(var(--destructive))",
+  "220 70% 40%",
+  "160 60% 35%",
 ];
 
 export const DealSizeChartModal = ({ isOpen, onClose, filters }: DealSizeChartModalProps) => {

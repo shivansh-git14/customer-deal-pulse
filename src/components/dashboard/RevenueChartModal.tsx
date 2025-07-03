@@ -22,15 +22,15 @@ interface MonthlyData {
 const chartConfig = {
   revenue: {
     label: "Revenue",
-    color: "hsl(var(--chart-1))",
+    color: "hsl(var(--primary))",
   },
   target: {
     label: "Target", 
-    color: "hsl(var(--chart-2))",
+    color: "hsl(var(--accent))",
   },
   dealVolume: {
     label: "Deals Closed",
-    color: "hsl(var(--chart-3))",
+    color: "hsl(var(--destructive))",
   },
 };
 
