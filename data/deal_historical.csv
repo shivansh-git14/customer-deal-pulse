@@ -1,0 +1,252 @@
+historical_id,deal_id,activity_date,activity_type,deal_stage,deal_value,customer_id,sales_rep_id,created_at
+1,1,2023-02-01,Initial Contact,Lead Generated,0.00,1,2,2023-02-01 10:30:00
+2,1,2023-02-15,Qualification Call,Qualified Prospect,85000.00,1,2,2023-02-15 14:20:00
+3,1,2023-03-10,Proposal Sent,Active Negotiation,110000.00,1,2,2023-03-10 16:45:00
+4,1,2023-04-22,Contract Review,Active Negotiation,125000.00,1,2,2023-04-22 11:30:00
+5,2,2023-01-25,Lead Generation,Lead Generated,0.00,2,3,2023-01-25 14:20:00
+6,2,2023-02-08,Discovery Meeting,Qualified Prospect,65000.00,2,3,2023-02-08 09:15:00
+7,2,2023-03-15,Proposal Presentation,Active Negotiation,78000.00,2,3,2023-03-15 12:30:00
+8,2,2023-04-20,Final Negotiation,Final Stage,85000.00,2,3,2023-04-20 15:45:00
+9,2,2023-05-12,Contract Signed,Closed,87500.00,2,3,2023-05-12 10:20:00
+10,3,2023-02-10,Initial Inquiry,Lead Generated,0.00,3,4,2023-02-10 16:45:00
+11,3,2023-02-28,Needs Assessment,Qualified Prospect,120000.00,3,4,2023-02-28 11:15:00
+12,3,2023-03-25,Technical Demo,Qualified Prospect,145000.00,3,4,2023-03-25 14:30:00
+13,3,2023-04-15,Pricing Discussion,Qualified Prospect,156000.00,3,4,2023-04-15 16:00:00
+14,4,2023-02-18,First Contact,Lead Generated,0.00,4,5,2023-02-18 09:30:00
+15,4,2023-03-05,Stakeholder Meeting,Qualified Prospect,175000.00,4,5,2023-03-05 13:20:00
+16,4,2023-04-10,Solution Design,Active Negotiation,195000.00,4,5,2023-04-10 15:45:00
+17,4,2023-05-22,Contract Negotiation,Final Stage,210000.00,4,5,2023-05-22 12:00:00
+18,5,2023-03-05,Lead Qualification,Lead Generated,0.00,5,6,2023-03-05 11:15:00
+19,5,2023-03-20,Product Demo,Qualified Prospect,82000.00,5,6,2023-03-20 09:45:00
+20,5,2023-04-12,Proposal Review,Active Negotiation,95000.00,5,6,2023-04-12 14:30:00
+21,5,2023-05-08,Terms Agreement,Active Negotiation,98000.00,5,6,2023-05-08 16:15:00
+22,6,2023-03-15,Initial Meeting,Lead Generated,0.00,6,7,2023-03-15 15:45:00
+23,6,2023-04-02,Requirements Gathering,Qualified Prospect,220000.00,6,7,2023-04-02 11:30:00
+24,6,2023-05-18,Proposal Delivery,Active Negotiation,250000.00,6,7,2023-05-18 13:45:00
+25,6,2023-06-25,Final Approval,Final Stage,270000.00,6,7,2023-06-25 10:20:00
+26,6,2023-07-15,Contract Execution,Closed,275000.00,6,7,2023-07-15 14:15:00
+27,7,2023-03-25,Lead Entry,Lead Generated,0.00,7,8,2023-03-25 10:20:00
+28,7,2023-04-08,Initial Call,Lead Generated,125000.00,7,8,2023-04-08 12:30:00
+29,7,2023-04-28,Follow-up,Lead Generated,140000.00,7,8,2023-04-28 16:45:00
+30,7,2023-05-15,Qualification,Lead Generated,145000.00,7,8,2023-05-15 09:30:00
+31,8,2023-04-08,First Contact,Lead Generated,0.00,8,9,2023-04-08 12:30:00
+32,8,2023-04-25,Discovery Call,Qualified Prospect,155000.00,8,9,2023-04-25 14:15:00
+33,8,2023-05-20,Solution Presentation,Active Negotiation,175000.00,8,9,2023-05-20 11:20:00
+34,8,2023-06-18,Price Negotiation,Active Negotiation,189000.00,8,9,2023-06-18 15:30:00
+35,9,2023-04-20,Lead Generation,Lead Generated,0.00,9,10,2023-04-20 14:15:00
+36,9,2023-05-08,Qualification Meeting,Qualified Prospect,105000.00,9,10,2023-05-08 16:45:00
+37,9,2023-06-12,Proposal Sent,Active Negotiation,120000.00,9,10,2023-06-12 13:30:00
+38,9,2023-07-20,Contract Review,Final Stage,130000.00,9,10,2023-07-20 10:45:00
+39,9,2023-08-15,Deal Closed,Closed,132000.00,9,10,2023-08-15 12:20:00
+40,10,2023-05-05,Initial Inquiry,Lead Generated,0.00,10,11,2023-05-05 16:45:00
+41,10,2023-05-22,Needs Analysis,Qualified Prospect,250000.00,10,11,2023-05-22 09:30:00
+42,10,2023-06-15,Technical Evaluation,Qualified Prospect,280000.00,10,11,2023-06-15 12:15:00
+43,10,2023-07-10,Risk Assessment,Qualified Prospect,298000.00,10,11,2023-07-10 14:45:00
+44,11,2023-05-18,Lead Capture,Lead Generated,0.00,11,12,2023-05-18 09:30:00
+45,11,2023-06-05,Discovery Session,Qualified Prospect,140000.00,11,12,2023-06-05 11:20:00
+46,11,2023-07-18,Proposal Development,Active Negotiation,155000.00,11,12,2023-07-18 13:45:00
+47,11,2023-08-25,Final Review,Final Stage,167000.00,11,12,2023-08-25 15:20:00
+48,12,2023-06-01,First Contact,Lead Generated,0.00,12,13,2023-06-01 11:20:00
+49,12,2023-06-20,Stakeholder Meeting,Qualified Prospect,195000.00,12,13,2023-06-20 14:30:00
+50,12,2023-07-28,Solution Design,Active Negotiation,215000.00,12,13,2023-07-28 16:15:00
+51,12,2023-09-10,Contract Finalization,Final Stage,230000.00,12,13,2023-09-10 10:45:00
+52,12,2023-10-18,Deal Won,Closed,234000.00,12,13,2023-10-18 13:30:00
+53,13,2023-06-15,Lead Generation,Lead Generated,0.00,13,14,2023-06-15 13:45:00
+54,13,2023-07-02,Initial Meeting,Qualified Prospect,150000.00,13,14,2023-07-02 15:30:00
+55,13,2023-08-12,Demo Presentation,Active Negotiation,168000.00,13,14,2023-08-12 12:20:00
+56,13,2023-09-20,Negotiation Phase,Active Negotiation,178000.00,13,14,2023-09-20 14:15:00
+57,14,2023-06-28,Initial Contact,Lead Generated,0.00,14,15,2023-06-28 15:30:00
+58,14,2023-07-15,Qualification Call,Qualified Prospect,210000.00,14,15,2023-07-15 10:45:00
+59,14,2023-08-22,Technical Review,Qualified Prospect,235000.00,14,15,2023-08-22 12:30:00
+60,14,2023-09-28,Risk Evaluation,Qualified Prospect,245000.00,14,15,2023-09-28 16:20:00
+61,15,2023-07-12,Lead Entry,Lead Generated,0.00,15,16,2023-07-12 14:20:00
+62,15,2023-08-01,Discovery Meeting,Qualified Prospect,165000.00,15,16,2023-08-01 09:15:00
+63,15,2023-09-15,Proposal Delivery,Active Negotiation,185000.00,15,16,2023-09-15 11:45:00
+64,15,2023-10-25,Final Negotiation,Final Stage,198000.00,15,16,2023-10-25 14:30:00
+65,16,2023-07-25,First Contact,Lead Generated,0.00,16,17,2023-07-25 16:45:00
+66,16,2023-08-08,Initial Assessment,Lead Generated,130000.00,16,17,2023-08-08 10:20:00
+67,16,2023-08-28,Follow-up Call,Lead Generated,145000.00,16,17,2023-08-28 13:15:00
+68,16,2023-09-18,Qualification,Lead Generated,156000.00,16,17,2023-09-18 15:45:00
+69,17,2023-08-08,Lead Generation,Lead Generated,0.00,17,18,2023-08-08 11:30:00
+70,17,2023-08-25,Needs Assessment,Qualified Prospect,240000.00,17,18,2023-08-25 13:15:00
+71,17,2023-09-20,Solution Design,Active Negotiation,265000.00,17,18,2023-09-20 15:45:00
+72,17,2023-10-30,Price Discussion,Active Negotiation,287000.00,17,18,2023-10-30 12:10:00
+73,18,2023-08-22,Initial Inquiry,Lead Generated,0.00,18,19,2023-08-22 13:15:00
+74,18,2023-09-10,Discovery Session,Qualified Prospect,135000.00,18,19,2023-09-10 15:30:00
+75,18,2023-10-18,Proposal Review,Active Negotiation,155000.00,18,19,2023-10-18 10:45:00
+76,18,2023-11-22,Final Approval,Final Stage,162000.00,18,19,2023-11-22 14:20:00
+77,18,2023-12-15,Contract Signed,Closed,165000.00,18,19,2023-12-15 16:30:00
+78,19,2023-09-05,Lead Capture,Lead Generated,0.00,19,20,2023-09-05 15:45:00
+79,19,2023-09-25,Qualification Meeting,Qualified Prospect,275000.00,19,20,2023-09-25 12:20:00
+80,19,2023-10-20,Technical Demo,Qualified Prospect,295000.00,19,20,2023-10-20 14:45:00
+81,19,2023-11-15,Risk Analysis,Qualified Prospect,312000.00,19,20,2023-11-15 11:30:00
+82,20,2023-09-18,First Contact,Lead Generated,0.00,20,21,2023-09-18 10:30:00
+83,20,2023-10-05,Discovery Call,Qualified Prospect,165000.00,20,21,2023-10-05 12:20:00
+84,20,2023-11-12,Proposal Presentation,Active Negotiation,185000.00,20,21,2023-11-12 14:45:00
+85,20,2023-12-20,Contract Review,Final Stage,198000.00,20,21,2023-12-20 16:15:00
+86,21,2023-10-02,Lead Entry,Lead Generated,0.00,21,22,2023-10-02 12:20:00
+87,21,2023-10-20,Initial Meeting,Qualified Prospect,190000.00,21,22,2023-10-20 14:45:00
+88,21,2023-11-28,Solution Demo,Active Negotiation,210000.00,21,22,2023-11-28 11:30:00
+89,21,2023-12-30,Price Negotiation,Active Negotiation,224000.00,21,22,2023-12-30 15:45:00
+90,22,2023-10-15,Initial Contact,Lead Generated,0.00,22,23,2023-10-15 14:45:00
+91,22,2023-11-02,Qualification,Lead Generated,165000.00,22,23,2023-11-02 16:30:00
+92,22,2023-11-25,Follow-up,Lead Generated,180000.00,22,23,2023-11-25 10:15:00
+93,22,2023-12-18,Assessment,Lead Generated,189000.00,22,23,2023-12-18 13:40:00
+94,23,2023-10-28,Lead Generation,Lead Generated,0.00,23,24,2023-10-28 16:30:00
+95,23,2023-11-15,Needs Analysis,Qualified Prospect,225000.00,23,24,2023-11-15 11:15:00
+96,23,2023-12-10,Technical Review,Qualified Prospect,250000.00,23,24,2023-12-10 13:45:00
+97,23,2024-01-08,Risk Assessment,Qualified Prospect,267000.00,23,24,2024-01-08 15:20:00
+98,24,2023-11-12,First Contact,Lead Generated,0.00,24,25,2023-11-12 11:15:00
+99,24,2023-12-02,Discovery Meeting,Qualified Prospect,120000.00,24,25,2023-12-02 13:45:00
+100,24,2024-01-15,Proposal Development,Active Negotiation,135000.00,24,25,2024-01-15 15:20:00
+101,24,2024-02-28,Final Review,Final Stage,145000.00,24,25,2024-02-28 10:45:00
+102,25,2023-11-25,Lead Capture,Lead Generated,0.00,25,26,2023-11-25 13:45:00
+103,25,2023-12-15,Stakeholder Meeting,Qualified Prospect,250000.00,25,26,2023-12-15 15:20:00
+104,25,2024-01-22,Solution Design,Active Negotiation,275000.00,25,26,2024-01-22 12:30:00
+105,25,2024-03-05,Contract Finalization,Final Stage,290000.00,25,26,2024-03-05 14:15:00
+106,25,2024-04-18,Deal Closed,Closed,298000.00,25,26,2024-04-18 16:45:00
+107,26,2023-12-08,Initial Inquiry,Lead Generated,0.00,26,27,2023-12-08 15:20:00
+108,26,2023-12-28,Initial Meeting,Qualified Prospect,145000.00,26,27,2023-12-28 10:45:00
+109,26,2024-01-25,Demo Presentation,Active Negotiation,165000.00,26,27,2024-01-25 12:30:00
+110,26,2024-03-10,Negotiation Phase,Active Negotiation,176000.00,26,27,2024-03-10 14:45:00
+111,27,2023-12-22,Lead Generation,Lead Generated,0.00,27,28,2023-12-22 10:45:00
+112,27,2024-01-12,Qualification Call,Qualified Prospect,200000.00,27,28,2024-01-12 12:30:00
+113,27,2024-02-20,Technical Evaluation,Qualified Prospect,220000.00,27,28,2024-02-20 14:45:00
+114,27,2024-03-28,Risk Review,Qualified Prospect,234000.00,27,28,2024-03-28 16:20:00
+115,28,2024-01-15,First Contact,Lead Generated,0.00,28,29,2024-01-15 12:30:00
+116,28,2024-02-02,Initial Assessment,Lead Generated,170000.00,28,29,2024-02-02 14:45:00
+117,28,2024-02-25,Follow-up Meeting,Lead Generated,185000.00,28,29,2024-02-25 10:20:00
+118,28,2024-03-18,Qualification,Lead Generated,198000.00,28,29,2024-03-18 12:15:00
+119,29,2024-01-28,Lead Entry,Lead Generated,0.00,29,30,2024-01-28 14:45:00
+120,29,2024-02-15,Discovery Session,Qualified Prospect,235000.00,29,30,2024-02-15 16:20:00
+121,29,2024-03-25,Solution Presentation,Active Negotiation,255000.00,29,30,2024-03-25 11:30:00
+122,29,2024-05-08,Final Negotiation,Final Stage,278000.00,29,30,2024-05-08 13:45:00
+123,30,2024-02-12,Initial Contact,Lead Generated,0.00,30,31,2024-02-12 16:20:00
+124,30,2024-03-02,Needs Assessment,Qualified Prospect,140000.00,30,31,2024-03-02 14:45:00
+125,30,2024-04-15,Proposal Review,Active Negotiation,155000.00,30,31,2024-04-15 12:20:00
+126,30,2024-05-30,Price Discussion,Active Negotiation,167000.00,30,31,2024-05-30 15:30:00
+127,31,2024-02-25,Lead Generation,Lead Generated,0.00,31,32,2024-02-25 09:15:00
+128,31,2024-03-15,Qualification Meeting,Qualified Prospect,210000.00,31,32,2024-03-15 11:30:00
+129,31,2024-04-22,Technical Demo,Qualified Prospect,230000.00,31,32,2024-04-22 13:45:00
+130,31,2024-05-28,Risk Evaluation,Qualified Prospect,245000.00,31,32,2024-05-28 15:20:00
+131,32,2024-03-08,First Contact,Lead Generated,0.00,32,33,2024-03-08 11:30:00
+132,32,2024-03-25,Discovery Call,Qualified Prospect,160000.00,32,33,2024-03-25 13:45:00
+133,32,2024-04-30,Proposal Delivery,Active Negotiation,175000.00,32,33,2024-04-30 15:20:00
+134,32,2024-06-12,Final Approval,Final Stage,185000.00,32,33,2024-06-12 10:45:00
+135,32,2024-07-20,Contract Signed,Closed,189000.00,32,33,2024-07-20 14:30:00
+136,33,2024-03-22,Lead Capture,Lead Generated,0.00,33,34,2024-03-22 13:45:00
+137,33,2024-04-10,Stakeholder Meeting,Qualified Prospect,265000.00,33,34,2024-04-10 15:20:00
+138,33,2024-05-25,Solution Design,Active Negotiation,290000.00,33,34,2024-05-25 12:15:00
+139,33,2024-07-08,Final Review,Final Stage,312000.00,33,34,2024-07-08 14:45:00
+140,34,2024-04-05,Initial Inquiry,Lead Generated,0.00,34,35,2024-04-05 15:20:00
+141,34,2024-04-25,Initial Meeting,Qualified Prospect,130000.00,34,35,2024-04-25 12:15:00
+142,34,2024-06-05,Demo Presentation,Active Negotiation,145000.00,34,35,2024-06-05 14:30:00
+143,34,2024-07-20,Negotiation Phase,Active Negotiation,156000.00,34,35,2024-07-20 16:45:00
+144,35,2024-04-18,Lead Generation,Lead Generated,0.00,35,36,2024-04-18 12:15:00
+145,35,2024-05-08,Qualification,Lead Generated,255000.00,35,36,2024-05-08 14:30:00
+146,35,2024-05-30,Follow-up,Lead Generated,275000.00,35,36,2024-05-30 16:45:00
+147,35,2024-06-22,Assessment,Lead Generated,298000.00,35,36,2024-06-22 11:20:00
+148,36,2024-05-02,First Contact,Lead Generated,0.00,36,37,2024-05-02 14:30:00
+149,36,2024-05-20,Needs Analysis,Qualified Prospect,150000.00,36,37,2024-05-20 16:45:00
+150,36,2024-06-28,Technical Review,Qualified Prospect,165000.00,36,37,2024-06-28 13:20:00
+151,36,2024-08-05,Risk Assessment,Qualified Prospect,176000.00,36,37,2024-08-05 15:45:00
+152,37,2024-05-15,Lead Entry,Lead Generated,0.00,37,38,2024-05-15 16:45:00
+153,37,2024-06-02,Discovery Meeting,Qualified Prospect,195000.00,37,38,2024-06-02 10:20:00
+154,37,2024-07-18,Proposal Development,Active Negotiation,215000.00,37,38,2024-07-18 12:45:00
+155,37,2024-09-10,Final Negotiation,Final Stage,234000.00,37,38,2024-09-10 14:30:00
+156,38,2024-05-28,Initial Contact,Lead Generated,0.00,38,39,2024-05-28 10:20:00
+157,38,2024-06-15,Discovery Session,Qualified Prospect,165000.00,38,39,2024-06-15 12:45:00
+158,38,2024-07-30,Solution Presentation,Active Negotiation,185000.00,38,39,2024-07-30 14:30:00
+159,38,2024-09-12,Contract Review,Final Stage,195000.00,38,39,2024-09-12 16:15:00
+160,38,2024-10-25,Deal Won,Closed,198000.00,38,39,2024-10-25 11:40:00
+161,39,2024-06-12,Lead Generation,Lead Generated,0.00,39,40,2024-06-12 12:45:00
+162,39,2024-07-01,Qualification Call,Qualified Prospect,220000.00,39,40,2024-07-01 14:15:00
+163,39,2024-08-15,Technical Evaluation,Active Negotiation,245000.00,39,40,2024-08-15 16:30:00
+164,39,2024-09-30,Price Negotiation,Active Negotiation,267000.00,39,40,2024-09-30 13:20:00
+165,40,2024-06-25,First Contact,Lead Generated,0.00,40,41,2024-06-25 14:15:00
+166,40,2024-07-12,Initial Assessment,Qualified Prospect,120000.00,40,41,2024-07-12 16:30:00
+167,40,2024-08-20,Risk Review,Qualified Prospect,135000.00,40,41,2024-08-20 11:45:00
+168,40,2024-09-25,Final Evaluation,Qualified Prospect,145000.00,40,41,2024-09-25 13:30:00
+169,41,2024-07-08,Lead Capture,Lead Generated,0.00,41,42,2024-07-08 16:30:00
+170,41,2024-07-28,Qualification,Lead Generated,250000.00,41,42,2024-07-28 09:45:00
+171,41,2024-08-18,Follow-up Meeting,Lead Generated,270000.00,41,42,2024-08-18 12:20:00
+172,41,2024-09-15,Assessment Call,Lead Generated,289000.00,41,42,2024-09-15 14:35:00
+173,42,2024-07-22,Initial Inquiry,Lead Generated,0.00,42,43,2024-07-22 09:45:00
+174,42,2024-08-10,Discovery Call,Qualified Prospect,150000.00,42,43,2024-08-10 11:20:00
+175,42,2024-09-22,Proposal Review,Active Negotiation,165000.00,42,43,2024-09-22 13:45:00
+176,42,2024-11-05,Final Review,Final Stage,178000.00,42,43,2024-11-05 15:25:00
+177,43,2024-08-05,Lead Generation,Lead Generated,0.00,43,44,2024-08-05 11:20:00
+178,43,2024-08-25,Needs Assessment,Qualified Prospect,275000.00,43,44,2024-08-25 13:45:00
+179,43,2024-09-30,Solution Design,Active Negotiation,295000.00,43,44,2024-09-30 15:45:00
+180,43,2024-11-15,Price Discussion,Active Negotiation,312000.00,43,44,2024-11-15 12:30:00
+181,44,2024-08-18,First Contact,Lead Generated,0.00,44,45,2024-08-18 13:45:00
+182,44,2024-09-05,Discovery Meeting,Qualified Prospect,155000.00,44,45,2024-09-05 15:30:00
+183,44,2024-10-20,Proposal Delivery,Active Negotiation,175000.00,44,45,2024-10-20 12:15:00
+184,44,2024-12-02,Final Approval,Final Stage,183000.00,44,45,2024-12-02 14:45:00
+185,44,2024-12-28,Contract Signed,Closed,187000.00,44,45,2024-12-28 16:20:00
+186,45,2024-09-02,Lead Entry,Lead Generated,0.00,45,46,2024-09-02 15:30:00
+187,45,2024-09-20,Qualification Meeting,Qualified Prospect,210000.00,45,46,2024-09-20 12:15:00
+188,45,2024-10-30,Technical Demo,Qualified Prospect,230000.00,45,46,2024-10-30 14:45:00
+189,45,2024-12-10,Risk Analysis,Qualified Prospect,245000.00,45,46,2024-12-10 16:20:00
+190,46,2024-09-15,Initial Contact,Lead Generated,0.00,46,47,2024-09-15 12:15:00
+191,46,2024-10-05,Needs Analysis,Qualified Prospect,130000.00,46,47,2024-10-05 14:30:00
+192,46,2024-11-18,Solution Presentation,Active Negotiation,145000.00,46,47,2024-11-18 16:45:00
+193,46,2024-12-30,Final Negotiation,Final Stage,156000.00,46,47,2024-12-30 11:20:00
+194,47,2024-09-28,Lead Generation,Lead Generated,0.00,47,48,2024-09-28 14:30:00
+195,47,2024-10-18,Discovery Session,Qualified Prospect,250000.00,47,48,2024-10-18 16:45:00
+196,47,2024-12-05,Proposal Development,Active Negotiation,275000.00,47,48,2024-12-05 13:30:00
+197,47,2025-01-20,Price Negotiation,Active Negotiation,298000.00,47,48,2025-01-20 15:15:00
+198,48,2024-10-12,First Contact,Lead Generated,0.00,48,49,2024-10-12 16:45:00
+199,48,2024-11-02,Qualification,Lead Generated,150000.00,48,49,2024-11-02 10:30:00
+200,48,2024-11-25,Follow-up,Lead Generated,165000.00,48,49,2024-11-25 12:45:00
+201,48,2024-12-22,Assessment,Lead Generated,176000.00,48,49,2024-12-22 14:20:00
+202,49,2024-10-25,Lead Capture,Lead Generated,0.00,49,50,2024-10-25 10:30:00
+203,49,2024-11-15,Stakeholder Meeting,Qualified Prospect,200000.00,49,50,2024-11-15 12:45:00
+204,49,2024-12-28,Technical Review,Qualified Prospect,220000.00,49,50,2024-12-28 14:20:00
+205,49,2025-01-25,Risk Evaluation,Qualified Prospect,234000.00,49,50,2025-01-25 16:30:00
+206,50,2024-11-08,Initial Inquiry,Lead Generated,0.00,50,51,2024-11-08 12:45:00
+207,50,2024-11-28,Discovery Call,Qualified Prospect,165000.00,50,51,2024-11-28 14:20:00
+208,50,2025-01-10,Proposal Review,Active Negotiation,185000.00,50,51,2025-01-10 16:30:00
+209,50,2025-02-25,Final Review,Final Stage,198000.00,50,51,2025-02-25 11:15:00
+210,51,2024-11-22,Lead Generation,Lead Generated,0.00,51,52,2024-11-22 14:20:00
+211,51,2024-12-12,Qualification Call,Qualified Prospect,225000.00,51,52,2024-12-12 16:15:00
+212,51,2025-01-28,Solution Design,Active Negotiation,250000.00,51,52,2025-01-28 13:30:00
+213,51,2025-03-15,Contract Finalization,Final Stage,263000.00,51,52,2025-03-15 15:45:00
+214,51,2025-04-20,Deal Closed,Closed,267000.00,51,52,2025-04-20 10:20:00
+215,52,2024-12-05,First Contact,Lead Generated,0.00,52,53,2024-12-05 16:15:00
+216,52,2024-12-25,Initial Meeting,Qualified Prospect,120000.00,52,53,2024-12-25 09:30:00
+217,52,2025-02-08,Demo Presentation,Active Negotiation,135000.00,52,53,2025-02-08 11:45:00
+218,52,2025-03-25,Negotiation Phase,Active Negotiation,145000.00,52,53,2025-03-25 13:20:00
+219,53,2024-12-18,Lead Entry,Lead Generated,0.00,53,54,2024-12-18 09:30:00
+220,53,2025-01-08,Needs Assessment,Qualified Prospect,245000.00,53,54,2025-01-08 11:45:00
+221,53,2025-02-22,Technical Evaluation,Qualified Prospect,270000.00,53,54,2025-02-22 13:20:00
+222,53,2025-03-30,Risk Review,Qualified Prospect,289000.00,53,54,2025-03-30 15:40:00
+223,54,2025-01-02,Initial Contact,Lead Generated,0.00,54,55,2025-01-02 11:45:00
+224,54,2025-01-22,Assessment,Lead Generated,155000.00,54,55,2025-01-22 13:20:00
+225,54,2025-02-15,Follow-up Meeting,Lead Generated,170000.00,54,55,2025-02-15 15:40:00
+226,54,2025-03-12,Qualification,Lead Generated,178000.00,54,55,2025-03-12 10:25:00
+227,55,2025-01-15,Lead Generation,Lead Generated,0.00,55,56,2025-01-15 13:20:00
+228,55,2025-02-05,Discovery Session,Qualified Prospect,265000.00,55,56,2025-02-05 15:45:00
+229,55,2025-03-20,Solution Presentation,Active Negotiation,290000.00,55,56,2025-03-20 12:30:00
+230,55,2025-05-15,Final Negotiation,Final Stage,312000.00,55,56,2025-05-15 14:15:00
+231,56,2025-01-28,First Contact,Lead Generated,0.00,56,57,2025-01-28 15:45:00
+232,56,2025-02-18,Needs Analysis,Qualified Prospect,155000.00,56,57,2025-02-18 14:30:00
+233,56,2025-04-02,Proposal Development,Active Negotiation,175000.00,56,57,2025-04-02 16:45:00
+234,56,2025-05-20,Price Discussion,Active Negotiation,187000.00,56,57,2025-05-20 11:25:00
+235,57,2025-02-12,Lead Capture,Lead Generated,0.00,57,58,2025-02-12 14:30:00
+236,57,2025-03-05,Qualification Meeting,Qualified Prospect,210000.00,57,58,2025-03-05 16:45:00
+237,57,2025-04-20,Technical Demo,Qualified Prospect,230000.00,57,58,2025-04-20 13:15:00
+238,57,2025-05-25,Risk Evaluation,Qualified Prospect,245000.00,57,58,2025-05-25 15:30:00
+239,58,2025-02-25,Initial Inquiry,Lead Generated,0.00,58,59,2025-02-25 16:45:00
+240,58,2025-03-18,Discovery Call,Qualified Prospect,130000.00,58,59,2025-03-18 10:20:00
+241,58,2025-05-02,Proposal Review,Active Negotiation,145000.00,58,59,2025-05-02 12:30:00
+242,58,2025-06-18,Final Approval,Final Stage,153000.00,58,59,2025-06-18 14:45:00
+243,58,2025-07-25,Contract Signed,Closed,156000.00,58,59,2025-07-25 16:20:00
+244,59,2025-03-08,Lead Generation,Lead Generated,0.00,59,60,2025-03-08 10:20:00
+245,59,2025-03-28,Stakeholder Meeting,Qualified Prospect,255000.00,59,60,2025-03-28 12:30:00
+246,59,2025-05-15,Solution Design,Active Negotiation,280000.00,59,60,2025-05-15 14:45:00
+247,59,2025-07-02,Final Review,Final Stage,298000.00,59,60,2025-07-02 16:20:00
+248,60,2025-03-22,First Contact,Lead Generated,0.00,60,61,2025-03-22 12:30:00
+249,60,2025-04-12,Initial Meeting,Qualified Prospect,145000.00,60,61,2025-04-12 14:45:00
+250,60,2025-06-05,Demo Presentation,Active Negotiation,165000.00,60,61,2025-06-05 16:20:00
+251,60,2025-07-28,Negotiation Phase,Active Negotiation,176000.00,60,61,2025-07-28 11:35:00

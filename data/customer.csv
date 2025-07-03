@@ -1,0 +1,106 @@
+customer_id,customer_name,assignment_dt,customer_lifecycle_stage,customer_industry,decision_maker,first_participation_date,created_at,updated_at
+1,Acme Corporation,2023-01-15,Newly Acquired,Technology,John Doe,2023-02-01,2023-01-15 08:00:00,2023-02-01 10:30:00
+2,Global Solutions Inc,2023-01-20,Loyal,Manufacturing,Jane Smith,2023-01-25,2023-01-20 09:15:00,2023-01-25 14:20:00
+3,TechStart LLC,2023-02-05,Acquisition,Technology,Mike Johnson,2023-02-10,2023-02-05 10:30:00,2023-02-10 16:45:00
+4,Blue Ocean Industries,2023-02-12,At Risk,Healthcare,Sarah Wilson,2023-02-18,2023-02-12 11:45:00,2023-02-18 09:30:00
+5,Innovation Labs,2023-02-28,Newly Acquired,Technology,David Brown,2023-03-05,2023-02-28 13:20:00,2023-03-05 11:15:00
+6,Pinnacle Services,2023-03-10,Loyal,Finance,Lisa Davis,2023-03-15,2023-03-10 14:30:00,2023-03-15 15:45:00
+7,Dynamic Systems,2023-03-18,Acquisition,Manufacturing,Robert Miller,2023-03-25,2023-03-18 16:00:00,2023-03-25 10:20:00
+8,Quantum Tech,2023-04-02,Newly Acquired,Technology,Emily Garcia,2023-04-08,2023-04-02 08:45:00,2023-04-08 12:30:00
+9,MetroMax Corp,2023-04-15,Loyal,Retail,Christopher Moore,2023-04-20,2023-04-15 09:30:00,2023-04-20 14:15:00
+10,NextGen Solutions,2023-04-28,At Risk,Healthcare,Amanda Taylor,2023-05-05,2023-04-28 11:15:00,2023-05-05 16:45:00
+11,Stellar Enterprises,2023-05-12,Newly Acquired,Finance,Kevin Anderson,2023-05-18,2023-05-12 12:00:00,2023-05-18 09:30:00
+12,Apex Manufacturing,2023-05-25,Loyal,Manufacturing,Michelle Thomas,2023-06-01,2023-05-25 13:45:00,2023-06-01 11:20:00
+13,Velocity Inc,2023-06-08,Acquisition,Technology,James Jackson,2023-06-15,2023-06-08 15:30:00,2023-06-15 13:45:00
+14,Premier Group,2023-06-22,Newly Acquired,Healthcare,Nicole White,2023-06-28,2023-06-22 10:15:00,2023-06-28 15:30:00
+15,Summit Solutions,2023-07-05,Loyal,Finance,Ryan Harris,2023-07-12,2023-07-05 11:45:00,2023-07-12 14:20:00
+16,Horizon Technologies,2023-07-18,At Risk,Technology,Ashley Martin,2023-07-25,2023-07-18 14:30:00,2023-07-25 16:45:00
+17,Unity Corp,2023-08-01,Newly Acquired,Manufacturing,Daniel Thompson,2023-08-08,2023-08-01 09:20:00,2023-08-08 11:30:00
+18,Triumph Industries,2023-08-15,Loyal,Retail,Stephanie Clark,2023-08-22,2023-08-15 10:45:00,2023-08-22 13:15:00
+19,Zenith Systems,2023-08-28,Acquisition,Healthcare,Andrew Rodriguez,2023-09-05,2023-08-28 12:30:00,2023-09-05 15:45:00
+20,Phoenix Enterprises,2023-09-12,Newly Acquired,Finance,Rachel Lewis,2023-09-18,2023-09-12 13:15:00,2023-09-18 10:30:00
+21,Atlas Group,2023-09-25,Loyal,Technology,Tyler Walker,2023-10-02,2023-09-25 14:45:00,2023-10-02 12:20:00
+22,Meridian Corp,2023-10-08,At Risk,Manufacturing,Megan Hall,2023-10-15,2023-10-08 16:30:00,2023-10-15 14:45:00
+23,Synergy Solutions,2023-10-22,Newly Acquired,Healthcare,Brandon Young,2023-10-28,2023-10-22 08:15:00,2023-10-28 16:30:00
+24,Catalyst Industries,2023-11-05,Loyal,Finance,Lauren King,2023-11-12,2023-11-05 09:45:00,2023-11-12 11:15:00
+25,Nexus Technologies,2023-11-18,Acquisition,Technology,Justin Wright,2023-11-25,2023-11-18 11:30:00,2023-11-25 13:45:00
+26,Prism Corp,2023-12-01,Newly Acquired,Retail,Samantha Lopez,2023-12-08,2023-12-01 12:45:00,2023-12-08 15:20:00
+27,Eclipse Systems,2023-12-15,Loyal,Manufacturing,Matthew Hill,2023-12-22,2023-12-15 14:20:00,2023-12-22 10:45:00
+28,Vertex Solutions,2024-01-08,At Risk,Healthcare,Brittany Scott,2024-01-15,2024-01-08 15:30:00,2024-01-15 12:30:00
+29,Orbital Industries,2024-01-22,Newly Acquired,Finance,Jacob Green,2024-01-28,2024-01-22 10:15:00,2024-01-28 14:45:00
+30,Fusion Corp,2024-02-05,Loyal,Technology,Victoria Adams,2024-02-12,2024-02-05 11:45:00,2024-02-12 16:20:00
+31,Spectrum Group,2024-02-18,Acquisition,Manufacturing,Zachary Baker,2024-02-25,2024-02-18 13:30:00,2024-02-25 09:15:00
+32,Pinnacle Tech,2024-03-02,Newly Acquired,Technology,Alexis Gonzalez,2024-03-08,2024-03-02 14:45:00,2024-03-08 11:30:00
+33,Infinity Solutions,2024-03-15,Loyal,Healthcare,Nathan Nelson,2024-03-22,2024-03-15 16:15:00,2024-03-22 13:45:00
+34,Matrix Industries,2024-03-28,At Risk,Finance,Chloe Carter,2024-04-05,2024-03-28 08:30:00,2024-04-05 15:20:00
+35,Quantum Systems,2024-04-12,Newly Acquired,Retail,Austin Mitchell,2024-04-18,2024-04-12 09:45:00,2024-04-18 12:15:00
+36,Nebula Corp,2024-04-25,Loyal,Manufacturing,Haley Perez,2024-05-02,2024-04-25 11:20:00,2024-05-02 14:30:00
+37,Vortex Technologies,2024-05-08,Acquisition,Technology,Sean Roberts,2024-05-15,2024-05-08 12:45:00,2024-05-15 16:45:00
+38,Apex Solutions,2024-05-22,Newly Acquired,Healthcare,Kayla Turner,2024-05-28,2024-05-22 14:30:00,2024-05-28 10:20:00
+39,Titan Industries,2024-06-05,Loyal,Finance,Jordan Phillips,2024-06-12,2024-06-05 15:45:00,2024-06-12 12:45:00
+40,Cosmos Group,2024-06-18,At Risk,Technology,Taylor Campbell,2024-06-25,2024-06-18 10:30:00,2024-06-25 14:15:00
+41,Stellar Corp,2024-07-01,Newly Acquired,Manufacturing,Morgan Parker,2024-07-08,2024-07-01 11:45:00,2024-07-08 16:30:00
+42,Galaxy Solutions,2024-07-15,Loyal,Retail,Blake Evans,2024-07-22,2024-07-15 13:20:00,2024-07-22 09:45:00
+43,Nova Industries,2024-07-28,Acquisition,Healthcare,Sydney Edwards,2024-08-05,2024-07-28 14:45:00,2024-08-05 11:20:00
+44,Pulsar Technologies,2024-08-12,Newly Acquired,Finance,Cameron Collins,2024-08-18,2024-08-12 16:30:00,2024-08-18 13:45:00
+45,Orbit Corp,2024-08-25,Loyal,Technology,Paige Stewart,2024-09-02,2024-08-25 08:15:00,2024-09-02 15:30:00
+46,Zenith Group,2024-09-08,At Risk,Manufacturing,Hunter Sanchez,2024-09-15,2024-09-08 09:30:00,2024-09-15 12:15:00
+47,Apex Systems,2024-09-22,Newly Acquired,Healthcare,Brooke Morris,2024-09-28,2024-09-22 10:45:00,2024-09-28 14:30:00
+48,Meridian Solutions,2024-10-05,Loyal,Finance,Connor Rogers,2024-10-12,2024-10-05 12:20:00,2024-10-12 16:45:00
+49,Pinnacle Industries,2024-10-18,Acquisition,Technology,Mackenzie Reed,2024-10-25,2024-10-18 13:45:00,2024-10-25 10:30:00
+50,Vertex Corp,2024-11-01,Newly Acquired,Retail,Parker Cook,2024-11-08,2024-11-01 15:30:00,2024-11-08 12:45:00
+51,Catalyst Technologies,2024-11-15,Loyal,Manufacturing,Avery Morgan,2024-11-22,2024-11-15 10:15:00,2024-11-22 14:20:00
+52,Synergy Group,2024-11-28,At Risk,Healthcare,Riley Bell,2024-12-05,2024-11-28 11:30:00,2024-12-05 16:15:00
+53,Nexus Solutions,2024-12-12,Newly Acquired,Finance,Quinn Murphy,2024-12-18,2024-12-12 12:45:00,2024-12-18 09:30:00
+54,Prism Industries,2024-12-25,Loyal,Technology,Casey Bailey,2025-01-02,2024-12-25 14:20:00,2025-01-02 11:45:00
+55,Eclipse Corp,2025-01-08,Acquisition,Manufacturing,Drew Rivera,2025-01-15,2025-01-08 15:45:00,2025-01-15 13:20:00
+56,Fusion Technologies,2025-01-22,Newly Acquired,Healthcare,Peyton Cooper,2025-01-28,2025-01-22 10:30:00,2025-01-28 15:45:00
+57,Spectrum Solutions,2025-02-05,Loyal,Finance,Reese Richardson,2025-02-12,2025-02-05 11:45:00,2025-02-12 14:30:00
+58,Infinity Group,2025-02-18,At Risk,Technology,Sage Cox,2025-02-25,2025-02-18 13:30:00,2025-02-25 16:45:00
+59,Matrix Corp,2025-03-02,Newly Acquired,Retail,Emery Ward,2025-03-08,2025-03-02 14:45:00,2025-03-08 10:20:00
+60,Quantum Industries,2025-03-15,Loyal,Manufacturing,River Torres,2025-03-22,2025-03-15 16:20:00,2025-03-22 12:30:00
+61,Nebula Solutions,2025-03-28,Acquisition,Healthcare,Skylar Peterson,2025-04-05,2025-03-28 08:45:00,2025-04-05 14:45:00
+62,Vortex Corp,2025-04-12,Newly Acquired,Finance,Rowan Gray,2025-04-18,2025-04-12 09:30:00,2025-04-18 16:30:00
+63,Apex Technologies,2025-04-25,Loyal,Technology,Phoenix Ramirez,2025-05-02,2025-04-25 10:45:00,2025-05-02 11:15:00
+64,Titan Solutions,2025-05-08,At Risk,Manufacturing,Indigo James,2025-05-15,2025-05-08 12:15:00,2025-05-15 13:45:00
+65,Cosmos Industries,2025-05-22,Newly Acquired,Healthcare,Sage Watson,2025-05-28,2025-05-22 13:30:00,2025-05-28 15:20:00
+66,Stellar Technologies,2025-06-05,Loyal,Finance,River Brooks,2025-06-12,2025-06-05 14:45:00,2025-06-12 10:45:00
+67,Galaxy Corp,2025-06-18,Acquisition,Technology,Storm Kelly,2025-06-25,2025-06-18 16:30:00,2025-06-25 12:30:00
+68,Nova Solutions,2025-07-01,Newly Acquired,Retail,Ocean Sanders,2025-07-08,2025-07-01 08:20:00,2025-07-08 14:15:00
+69,Pulsar Industries,2025-07-15,Loyal,Manufacturing,Luna Price,2025-07-22,2025-07-15 09:45:00,2025-07-22 16:45:00
+70,Orbit Technologies,2025-07-28,At Risk,Healthcare,Nova Bennett,2025-08-05,2025-07-28 11:20:00,2025-08-05 10:30:00
+71,Zenith Solutions,2025-08-12,Newly Acquired,Finance,Atlas Wood,2025-08-18,2025-08-12 12:30:00,2025-08-18 12:45:00
+72,Meridian Industries,2025-08-25,Loyal,Technology,Iris Barnes,2025-09-02,2025-08-25 13:45:00,2025-09-02 14:30:00
+73,Pinnacle Corp,2025-09-08,Acquisition,Manufacturing,Orion Ross,2025-09-15,2025-09-08 15:15:00,2025-09-15 16:20:00
+74,Vertex Technologies,2025-09-22,Newly Acquired,Healthcare,Ruby Henderson,2025-09-28,2025-09-22 10:45:00,2025-09-28 11:30:00
+75,Catalyst Solutions,2025-10-05,Loyal,Finance,Jasper Coleman,2025-10-12,2025-10-05 11:30:00,2025-10-12 13:45:00
+76,Synergy Industries,2025-10-18,At Risk,Technology,Willow Jenkins,2025-10-25,2025-10-18 12:45:00,2025-10-25 15:30:00
+77,Nexus Corp,2025-11-01,Newly Acquired,Retail,Aspen Perry,2025-11-08,2025-11-01 14:30:00,2025-11-08 10:45:00
+78,Prism Technologies,2025-11-15,Loyal,Manufacturing,Hazel Powell,2025-11-22,2025-11-15 15:45:00,2025-11-22 12:20:00
+79,Eclipse Solutions,2025-11-28,Acquisition,Healthcare,Cedar Long,2025-12-05,2025-11-28 16:30:00,2025-12-05 14:45:00
+80,Fusion Industries,2025-12-12,Newly Acquired,Finance,Maple Patterson,2025-12-18,2025-12-12 08:15:00,2025-12-18 16:30:00
+81,Spectrum Corp,2023-03-25,Churned,Technology,Sage Hughes,2023-04-01,2023-03-25 09:30:00,2024-02-15 14:20:00
+82,Infinity Technologies,2023-04-08,Churned,Manufacturing,Pine Flores,2023-04-15,2023-04-08 10:45:00,2024-03-10 16:45:00
+83,Matrix Solutions,2023-04-22,Churned,Healthcare,Oak Washington,2023-04-28,2023-04-22 12:20:00,2024-04-05 11:30:00
+84,Quantum Corp,2023-05-05,Churned,Finance,Birch Butler,2023-05-12,2023-05-05 13:45:00,2024-05-20 13:15:00
+85,Nebula Industries,2023-05-18,Churned,Technology,Elm Simmons,2023-05-25,2023-05-18 15:30:00,2024-06-12 15:45:00
+86,Vortex Solutions,2023-06-01,Churned,Retail,Ash Foster,2023-06-08,2023-06-01 10:15:00,2024-07-08 09:30:00
+87,Apex Corp,2023-06-15,Churned,Manufacturing,Palm Gonzales,2023-06-22,2023-06-15 11:30:00,2024-08-22 11:45:00
+88,Titan Technologies,2023-06-28,Churned,Healthcare,Fern Bryant,2023-07-05,2023-06-28 12:45:00,2024-09-15 14:20:00
+89,Cosmos Solutions,2023-07-12,Churned,Finance,Reed Alexander,2023-07-18,2023-07-12 14:20:00,2024-10-10 16:30:00
+90,Stellar Industries,2023-07-25,Churned,Technology,Clay Russell,2023-08-01,2023-07-25 15:45:00,2024-11-25 10:15:00
+91,Galaxy Corp,2023-08-08,Churned,Manufacturing,Sage Griffin,2023-08-15,2023-08-08 16:30:00,2024-12-18 12:45:00
+92,Nova Technologies,2023-08-22,Churned,Healthcare,Stone Diaz,2023-08-28,2023-08-22 08:45:00,2025-01-12 14:30:00
+93,Pulsar Solutions,2023-09-05,Churned,Finance,Crystal Hayes,2023-09-12,2023-09-05 09:30:00,2025-02-08 16:15:00
+94,Orbit Industries,2023-09-18,Churned,Technology,Jade Myers,2023-09-25,2023-09-18 10:45:00,2025-03-15 11:20:00
+95,Zenith Corp,2023-10-01,Churned,Retail,Onyx Ford,2023-10-08,2023-10-01 12:15:00,2025-04-10 13:45:00
+96,Meridian Technologies,2023-10-15,Churned,Manufacturing,Pearl Hamilton,2023-10-22,2023-10-15 13:30:00,2025-05-18 15:30:00
+97,Pinnacle Solutions,2023-10-28,Churned,Healthcare,Diamond Graham,2023-11-05,2023-10-28 14:45:00,2025-06-12 10:45:00
+98,Vertex Industries,2023-11-12,Churned,Finance,Silver Sullivan,2023-11-18,2023-11-12 16:20:00,2025-07-20 12:30:00
+99,Catalyst Corp,2023-11-25,Churned,Technology,Gold Wallace,2023-12-02,2023-11-25 08:30:00,2025-08-15 14:45:00
+100,Synergy Technologies,2023-12-08,Churned,Manufacturing,Bronze Woods,2023-12-15,2023-12-08 09:45:00,2025-09-10 16:20:00
+101,Digital Dynamics,2024-01-15,Loyal,Technology,Alex Rivera,2024-01-22,2024-01-15 10:30:00,2024-01-22 14:45:00
+102,Global Innovations,2024-02-08,Newly Acquired,Healthcare,Morgan Foster,2024-02-15,2024-02-08 11:45:00,2024-02-15 16:30:00
+103,Future Systems,2024-03-12,Acquisition,Finance,Jordan Blake,2024-03-18,2024-03-12 13:20:00,2024-03-18 10:15:00
+104,Elite Solutions,2024-04-05,At Risk,Manufacturing,Casey Taylor,2024-04-12,2024-04-05 14:30:00,2024-04-12 12:45:00
+105,Prime Technologies,2024-05-18,Loyal,Technology,Riley Davis,2024-05-25,2024-05-18 15:45:00,2024-05-25 14:20:00
