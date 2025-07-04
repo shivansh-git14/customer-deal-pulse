@@ -6,7 +6,6 @@ import { OverviewMetrics } from '@/components/dashboard/OverviewMetrics';
 import { CriticalAlerts } from '@/components/dashboard/CriticalAlerts';
 import { TeamOverview } from '@/components/dashboard/TeamOverview';
 import { useDashboardData, DashboardFilters as FiltersType } from '@/hooks/useDashboardData';
-import { useTeamData } from '@/hooks/useTeamData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { BarChart3, Users } from 'lucide-react';
@@ -17,10 +16,7 @@ const Index = () => {
     endDate: '2025-12-31'
   });
   
-  const { data: dashboardData, loading: dashboardLoading, error: dashboardError } = useDashboardData(filters);
-  const { data: teamData, loading: teamLoading, error: teamError } = useTeamData(filters);
-
-  const error = dashboardError || teamError;
+  const { data: dashboardData, loading: dashboardLoading, error } = useDashboardData(filters);
 
   if (error) {
     return (
@@ -102,18 +98,9 @@ const Index = () => {
           </TabsContent>
 
           <TabsContent value="team">
-            {teamLoading ? (
-              <div className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <Skeleton className="h-24 w-full rounded-lg" />
-                  <Skeleton className="h-24 w-full rounded-lg" />
-                  <Skeleton className="h-24 w-full rounded-lg" />
-                </div>
-                <Skeleton className="h-96 w-full rounded-lg" />
-              </div>
-            ) : teamData ? (
-              <TeamOverview data={teamData} />
-            ) : null}
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Team view coming soon...</p>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
