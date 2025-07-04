@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Slider } from '@/components/ui/slider';
 import { Label } from '@/components/ui/label';
@@ -18,56 +18,53 @@ interface DateRangeSliderProps {
 export const DateRangeSlider = ({ filters, onFiltersChange, availableManagers }: DateRangeSliderProps) => {
   const [dateRange, setDateRange] = useState([0, 100]);
   const [isUpdating, setIsUpdating] = useState(false);
-  
-  // Define min and max dates for the slider
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+
   const minDate = new Date('2023-01-01');
   const maxDate = new Date('2025-12-31');
   const totalDays = Math.ceil((maxDate.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
 
-  // Convert slider values to dates
   const convertSliderToDate = (value: number) => {
     const days = Math.floor((value / 100) * totalDays);
     const date = new Date(minDate.getTime() + days * 24 * 60 * 60 * 1000);
     return date.toISOString().split('T')[0];
   };
 
-  // Convert dates to slider values
   const convertDateToSlider = (dateString: string) => {
     const date = new Date(dateString);
     const days = Math.ceil((date.getTime() - minDate.getTime()) / (1000 * 60 * 60 * 24));
     return Math.floor((days / totalDays) * 100);
   };
 
-  // Initialize slider values from filters
+  // Effect: Sync internal state when filters change externally (only if not updating)
   useEffect(() => {
-    if (filters.startDate || filters.endDate) {
+    if (!isUpdating && (filters.startDate || filters.endDate)) {
       const startValue = filters.startDate ? convertDateToSlider(filters.startDate) : 0;
       const endValue = filters.endDate ? convertDateToSlider(filters.endDate) : 100;
       setDateRange([startValue, endValue]);
     }
-  }, [filters.startDate, filters.endDate]);
-
-  const debouncedFilterChange = useCallback(
-    (values: number[]) => {
-      setTimeout(() => {
-        const startDate = convertSliderToDate(values[0]);
-        const endDate = convertSliderToDate(values[1]);
-        
-        onFiltersChange({
-          ...filters,
-          startDate,
-          endDate
-        });
-        setIsUpdating(false);
-      }, 500);
-    },
-    [filters, onFiltersChange]
-  );
+  }, [filters.startDate, filters.endDate, isUpdating]);
 
   const handleSliderChange = (values: number[]) => {
     setDateRange(values);
     setIsUpdating(true);
-    debouncedFilterChange(values);
+
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    timeoutRef.current = setTimeout(() => {
+      const startDate = convertSliderToDate(values[0]);
+      const endDate = convertSliderToDate(values[1]);
+
+      onFiltersChange({
+        ...filters,
+        startDate,
+        endDate
+      });
+
+      setIsUpdating(false);
+    }, 500);
   };
 
   const handleManagerChange = (value: string) => {
