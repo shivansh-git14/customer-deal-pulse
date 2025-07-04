@@ -41,6 +41,7 @@ The main entry point for the dashboard that orchestrates all components.
 - `DateRangeSlider` component for advanced filtering
 - `OverviewMetrics` component for key performance indicators
 - `CriticalAlerts` component for high-risk deal monitoring
+- `TeamOverview` component for team performance analysis
 
 ### 2. **useDashboardData Hook** - Data Management
 **Location:** `src/hooks/useDashboardData.ts`
@@ -160,7 +161,33 @@ Orchestrates the display of all overview metrics using MetricCard components.
 2. **Best Performer**: Top sales rep by target achievement percentage
 3. **Average Deal Size**: Mean value of all closed deals (opens deal size distribution modal)
 
-### 6. **Chart Modal Components** - Detailed Visualizations
+### 6. **TeamOverview Component** - Team Performance Analysis
+**Location:** `src/components/dashboard/TeamOverview.tsx`
+
+Comprehensive team performance dashboard showing metrics for all sales teams.
+
+**Features:**
+- Team hierarchy identification (managers vs. team members)
+- Real-time metric calculations via `team-metrics` edge function
+- Performance scoring with weighted formula combining multiple factors
+- Visual indicators for momentum and risk assessment
+- Interactive table with sortable columns and action buttons
+
+**Metrics Displayed:**
+- Revenue vs Target percentage with trend indicators
+- Conversion rate based on closed won deals
+- Team efficiency (deals per team member)
+- Performance score (0-100 weighted composite)
+- Momentum classification (Accelerating/Improving/Stable/Declining)
+- Risk levels based on high-risk deal ratios
+- Average deal size for team portfolio
+
+**Data Flow:**
+```
+TeamOverview → team-metrics Edge Function → Database Aggregation → Calculated Metrics → UI Display
+```
+
+### 7. **Chart Modal Components** - Detailed Visualizations
 **Locations:** 
 - `src/components/dashboard/RevenueChartModal.tsx`
 - `src/components/dashboard/DealSizeChartModal.tsx`

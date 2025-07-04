@@ -144,6 +144,145 @@ max_deal_potential value for deals marked as high risk
 
 ---
 
+## Team Performance Metrics
+
+### Team Conversion Rate (%)
+**Description:** Percentage of deals closed won by team members
+
+**Data Sources:**
+- `deals_current` table
+- `sales_reps` table (for team hierarchy)
+
+**Calculation Logic:**
+```javascript
+(closedWonDeals / totalDeals) * 100
+// Where closedWonDeals = count of deals with deal_stage = 'closed_won'
+// And totalDeals = count of all deals for team members
+```
+
+**Associated Files:**
+- `supabase/functions/team-metrics/index.ts` (lines 123-125)
+- `src/components/dashboard/TeamOverview.tsx` (display logic)
+
+**Category:** Performance
+
+---
+
+### Team Performance Score  
+**Description:** Weighted composite score combining multiple team performance factors
+
+**Data Sources:**
+- `revenue` table
+- `targets` table
+- `deals_current` table
+
+**Calculation Logic:**
+```javascript
+(targetPercentage * 0.4) + (conversionRate * 2) + ((100 - riskRatio * 100) * 0.3)
+// Components:
+// - Target achievement (40% weight)
+// - Conversion rate (high multiplier)
+// - Risk mitigation (30% weight)
+// Result capped between 0-100
+```
+
+**Associated Files:**
+- `supabase/functions/team-metrics/index.ts` (lines 144-149)
+- `src/components/dashboard/TeamOverview.tsx` (display and color coding)
+
+**Category:** Performance
+
+---
+
+### Team Momentum
+**Description:** Performance trend indicator based on target achievement
+
+**Data Sources:**
+- `revenue` table
+- `targets` table
+
+**Calculation Logic:**
+```javascript
+// Based on targetPercentage = (totalRevenue / totalTarget) * 100
+if (targetPercentage >= 110) return 'Accelerating'
+else if (targetPercentage >= 90) return 'Improving'  
+else if (targetPercentage >= 70) return 'Stable'
+else return 'Declining'
+```
+
+**Associated Files:**
+- `supabase/functions/team-metrics/index.ts` (lines 132-136)
+- `src/components/dashboard/TeamOverview.tsx` (badge styling)
+
+**Category:** Performance
+
+---
+
+### Team Risk Level
+**Description:** Assessment of deal portfolio risk based on high-risk deal ratio
+
+**Data Sources:**
+- `deals_current` table (is_high_risk field)
+
+**Calculation Logic:**
+```javascript
+riskRatio = highRiskDeals / totalDeals
+// Where highRiskDeals = count of deals with is_high_risk = 'yes'
+if (riskRatio > 0.4) return 'High Risk'
+else if (riskRatio > 0.2) return 'Medium Risk'  
+else return 'Low Risk'
+```
+
+**Associated Files:**
+- `supabase/functions/team-metrics/index.ts` (lines 138-142)
+- `src/components/dashboard/TeamOverview.tsx` (risk badge display)
+
+**Category:** Risk
+
+---
+
+### Team Efficiency
+**Description:** Average number of deals managed per team member
+
+**Data Sources:**
+- `deals_current` table
+- `sales_reps` table (for team size)
+
+**Calculation Logic:**
+```javascript
+totalDeals / teamMemberIds.length
+// Where teamMemberIds includes manager + direct reports
+```
+
+**Associated Files:**
+- `supabase/functions/team-metrics/index.ts` (lines 152)
+- `src/components/dashboard/TeamOverview.tsx` (efficiency display)
+
+**Category:** Performance
+
+---
+
+### Average Deal Size (Team)
+**Description:** Mean potential value of team's deal portfolio
+
+**Data Sources:**
+- `deals_current` table (max_deal_potential field)
+
+**Calculation Logic:**
+```javascript
+// Filter out zero/null values, then calculate average
+dealValues = deals.map(deal => Number(deal.max_deal_potential) || 0).filter(val => val > 0)
+avgDealSize = dealValues.reduce((sum, val) => sum + val, 0) / dealValues.length
+```
+
+**Associated Files:**
+- `supabase/functions/team-metrics/index.ts` (lines 128-130)
+- `src/components/dashboard/TeamOverview.tsx` (currency formatting)
+
+**Category:** Revenue
+
+---
+
 ## Filter Application Rules
 
 ### Time Period Filter
@@ -192,12 +331,23 @@ max_deal_potential value for deals marked as high risk
 3. **Critical alerts not filtering:** Confirm `is_high_risk` values are 'Yes' (case-sensitive)
 
 ### File Locations for Debugging
-- **Backend Logic:** `supabase/functions/dashboard-overview/index.ts`
+- **Dashboard Overview Logic:** `supabase/functions/dashboard-overview/index.ts`
+- **Team Metrics Logic:** `supabase/functions/team-metrics/index.ts`
 - **Frontend Data Hooks:** `src/hooks/useDashboardData.ts`
 - **UI Components:** `src/components/dashboard/` directory
-- **Filter Component:** `src/components/dashboard/DateRangeSlider.tsx`
+- **Team Overview Component:** `src/components/dashboard/TeamOverview.tsx`
+- **Filter Component:** `src/components/dashboard/DateRangeSlider.tsx`  
 - **Chart Modals:** `src/components/dashboard/RevenueChartModal.tsx`, `src/components/dashboard/DealSizeChartModal.tsx`
 - **Design System:** `src/index.css` (color palette and theme tokens)
 
 ### Edge Function Logs
-Monitor the dashboard-overview edge function for query performance and errors in the Supabase dashboard.
+Monitor the following edge functions for query performance and errors in the Supabase dashboard:
+- `dashboard-overview` - Overall metrics and KPIs
+- `team-metrics` - Team performance calculations and analysis
+
+### Data Validation Rules
+- **All calculations use only existing database fields** - no synthetic data
+- **Team hierarchy**: Managers identified by NULL manager_id
+- **Risk assessment**: Based solely on existing is_high_risk field values  
+- **Performance scoring**: Weighted formula using real revenue, target, and deal data
+- **Date filtering**: Applied consistently across all metrics using participation_dt
