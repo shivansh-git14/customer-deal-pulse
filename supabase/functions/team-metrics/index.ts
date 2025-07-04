@@ -22,17 +22,19 @@ serve(async (req) => {
 
     console.log('Fetching team metrics with filters:', { startDate, endDate, salesManagerId })
 
-    // Get all managers and their teams
+    // Get all managers (those with NULL manager_id)
     const { data: managers, error: managersError } = await supabase
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name')
-      .eq('sales_rep_manager_id', null)
+      .is('sales_rep_manager_id', null)
       .eq('is_active', true)
 
     if (managersError) {
       console.error('Error fetching managers:', managersError)
       throw managersError
     }
+
+    console.log('Found managers:', managers)
 
     const teamMetrics = []
 
@@ -42,17 +44,19 @@ serve(async (req) => {
         continue
       }
 
-      // Get team members
+      // Get team members (including the manager themselves)
       const { data: teamMembers, error: teamError } = await supabase
         .from('sales_reps')
         .select('sales_rep_id, sales_rep_name')
-        .eq('sales_rep_manager_id', manager.sales_rep_id)
+        .or(`sales_rep_manager_id.eq.${manager.sales_rep_id},sales_rep_id.eq.${manager.sales_rep_id}`)
         .eq('is_active', true)
 
       if (teamError) {
         console.error('Error fetching team members:', teamError)
         continue
       }
+
+      console.log(`Team members for ${manager.sales_rep_name}:`, teamMembers)
 
       const teamMemberIds = teamMembers?.map(member => member.sales_rep_id) || []
       if (teamMemberIds.length === 0) continue
@@ -91,9 +95,10 @@ serve(async (req) => {
       }
 
       const totalTarget = targetData?.reduce((sum, record) => sum + Number(record.target_value), 0) || 1
+      console.log(`Team ${manager.sales_rep_name} - Revenue: ${totalRevenue}, Target: ${totalTarget}`)
 
       // Get team deals for conversion and efficiency metrics
-      const { data: dealsData, error: dealsError } = await supabase
+      let dealsQuery = supabase
         .from('deals_current')
         .select(`
           deal_id, 
@@ -104,10 +109,14 @@ serve(async (req) => {
         `)
         .in('sales_rep_id', teamMemberIds)
 
+      const { data: dealsData, error: dealsError } = await dealsQuery
+
       if (dealsError) {
         console.error('Error fetching deals data:', dealsError)
         continue
       }
+
+      console.log(`Team ${manager.sales_rep_name} deals:`, dealsData?.length || 0)
 
       // Calculate metrics
       const totalDeals = dealsData?.length || 0
