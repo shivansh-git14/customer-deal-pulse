@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -22,63 +22,46 @@ interface TeamMetrics {
   momentum: 'Accelerating' | 'Improving' | 'Stable' | 'Declining';
   risk_level: 'Low Risk' | 'Medium Risk' | 'High Risk';
   performance_score: number;
+  avg_deal_size: number;
 }
 
 export const TeamOverview = ({ filters }: TeamOverviewProps) => {
   const [teamData, setTeamData] = useState<TeamMetrics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Mock data based on the available managers and realistic metrics
-  const mockTeamData: TeamMetrics[] = [
-    {
-      team_name: "Sarah Johnson Team",
-      team_size: 4,
-      revenue: 394000,
-      target: 315000,
-      target_percentage: 125,
-      conversion_rate: 27.2,
-      efficiency: 7.8,
-      momentum: 'Accelerating',
-      risk_level: 'Low Risk',
-      performance_score: 92
-    },
-    {
-      team_name: "Michael Chen Team", 
-      team_size: 3,
-      revenue: 247000,
-      target: 252000,
-      target_percentage: 98,
-      conversion_rate: 21.8,
-      efficiency: 9.6,
-      momentum: 'Improving',
-      risk_level: 'Medium Risk',
-      performance_score: 78
-    },
-    {
-      team_name: "Emily Davis Team",
-      team_size: 2,
-      revenue: 152000,
-      target: 178000,
-      target_percentage: 85,
-      conversion_rate: 18.5,
-      efficiency: 12.1,
-      momentum: 'Stable',
-      risk_level: 'High Risk',
-      performance_score: 65
-    },
-    {
-      team_name: "Robert Wilson Team",
-      team_size: 3,
-      revenue: 268000,
-      target: 255000,
-      target_percentage: 105,
-      conversion_rate: 24.1,
-      efficiency: 8.9,
-      momentum: 'Stable',
-      risk_level: 'Low Risk',
-      performance_score: 84
-    }
-  ];
+  useEffect(() => {
+    const fetchTeamMetrics = async () => {
+      setIsLoading(true);
+      try {
+        console.log('Fetching team metrics with filters:', filters);
+        
+        const { data, error } = await supabase.functions.invoke('team-metrics', {
+          body: {
+            startDate: filters.startDate,
+            endDate: filters.endDate,
+            salesManagerId: filters.salesManagerId
+          }
+        });
+
+        if (error) {
+          console.error('Error fetching team metrics:', error);
+          return;
+        }
+
+        console.log('Team metrics response:', data);
+        
+        if (data.success) {
+          setTeamData(data.data);
+        }
+      } catch (error) {
+        console.error('Error calling team metrics function:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchTeamMetrics();
+  }, [filters]);
 
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
@@ -131,6 +114,26 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
     return 'bg-danger text-danger-foreground';
   };
 
+  if (isLoading) {
+    return (
+      <Card className="w-full">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center gap-2 text-xl font-semibold">
+            <Users className="h-5 w-5 text-primary" />
+            Team Performance Overview
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+            ))}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
@@ -156,7 +159,14 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {mockTeamData.map((team, index) => (
+              {teamData.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                    No team data available for the selected filters
+                  </TableCell>
+                </TableRow>
+              ) : (
+                teamData.map((team, index) => (
                 <TableRow key={index} className="hover:bg-muted/30 transition-colors">
                   <TableCell>
                     <div className="flex items-center gap-3">
@@ -187,7 +197,7 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                     <span className="text-foreground">{team.conversion_rate}%</span>
                   </TableCell>
                   <TableCell>
-                    <span className="text-foreground">{team.efficiency} touches/opp</span>
+                    <span className="text-foreground">{team.efficiency} deals/rep</span>
                   </TableCell>
                   <TableCell>
                     <Badge variant="outline" className={getMomentumBadge(team.momentum)}>
@@ -215,7 +225,8 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              ))
+            )}
             </TableBody>
           </Table>
         </div>
