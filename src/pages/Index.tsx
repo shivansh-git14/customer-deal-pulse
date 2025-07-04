@@ -17,6 +17,8 @@ const Index = () => {
   });
   
   const { data: dashboardData, loading: dashboardLoading, error } = useDashboardData(filters);
+  
+  console.log('Dashboard state:', { dashboardData, dashboardLoading, error });
 
   if (error) {
     return (
