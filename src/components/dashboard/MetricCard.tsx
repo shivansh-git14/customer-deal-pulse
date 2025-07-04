@@ -35,11 +35,15 @@ export const MetricCard = ({ title, value, subtitle, trend, icon, className = ''
 
   return (
     <Card 
-      className={`w-full transition-all duration-200 ${isClickable ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/20' : ''} ${className}`}
+      className={`w-full transition-all duration-300 shadow-sm hover:shadow-md ${
+        isClickable 
+          ? 'cursor-pointer hover:scale-[1.02] hover:shadow-lg' 
+          : ''
+      } ${className}`}
       onClick={onClick}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium text-muted-foreground">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-sm font-semibold text-muted-foreground tracking-wide">
           {title}
         </CardTitle>
         <div className="flex items-center gap-2">
@@ -47,16 +51,16 @@ export const MetricCard = ({ title, value, subtitle, trend, icon, className = ''
           {icon}
         </div>
       </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold text-foreground">{formatValue(value)}</div>
+      <CardContent className="pt-2">
+        <div className="text-3xl font-bold text-foreground mb-2">{formatValue(value)}</div>
         {subtitle && (
-          <p className="text-xs text-muted-foreground mt-1">
+          <p className="text-sm text-muted-foreground leading-relaxed">
             {subtitle}
           </p>
         )}
         {isClickable && (
-          <p className="text-xs text-primary mt-2 font-medium">
-            Click to view trend
+          <p className="text-xs text-primary mt-3 font-medium opacity-75 hover:opacity-100 transition-opacity">
+            Click to view details →
           </p>
         )}
       </CardContent>

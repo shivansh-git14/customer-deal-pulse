@@ -41,7 +41,7 @@ export const OverviewMetrics = ({ data, filters }: OverviewMetricsProps) => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <RevenueChartModal 
         isOpen={showRevenueChart}
         onClose={() => setShowRevenueChart(false)}
@@ -54,38 +54,40 @@ export const OverviewMetrics = ({ data, filters }: OverviewMetricsProps) => {
         filters={filters}
       />
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Overall Revenue */}
-        <div className="space-y-4">
-          <MetricCard
-            title="Overall Revenue"
-            value={formatCurrency(overallRevenue.total)}
-            subtitle={`${formatPercentage(overallRevenue.completionPercentage)} of target (${formatCurrency(overallRevenue.target)})`}
-            trend={getCompletionTrend(overallRevenue.completionPercentage)}
-            onClick={() => setShowRevenueChart(true)}
-            isClickable={true}
-          />
-          
-          {/* Average Deal Size */}
-          <MetricCard
-            title="Average Deal Size"
-            value={formatCurrency(avgDealSize)}
-            subtitle="Across all closed deals"
-            trend="neutral"
-            onClick={() => setShowDealSizeChart(true)}
-            isClickable={true}
-          />
-        </div>
-
-        {/* Best Performer */}
+      {/* Enhanced metric cards with modern styling */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Overall Revenue - Enhanced */}
         <MetricCard
-          title="Best Performer"
+          title="Total Revenue"
+          value={formatCurrency(overallRevenue.total)}
+          subtitle={`${formatPercentage(overallRevenue.completionPercentage)} of target (${formatCurrency(overallRevenue.target)})`}
+          trend={getCompletionTrend(overallRevenue.completionPercentage)}
+          onClick={() => setShowRevenueChart(true)}
+          isClickable={true}
+          className="bg-gradient-to-br from-card to-card/80 border-primary/20 hover:border-primary/40 transition-all duration-300"
+        />
+        
+        {/* Average Deal Size - Enhanced */}
+        <MetricCard
+          title="Avg Deal Size"
+          value={formatCurrency(avgDealSize)}
+          subtitle="Across all closed deals"
+          trend="neutral"
+          onClick={() => setShowDealSizeChart(true)}
+          isClickable={true}
+          className="bg-gradient-to-br from-card to-card/80 border-accent/20 hover:border-accent/40 transition-all duration-300"
+        />
+
+        {/* Best Performer - Enhanced */}
+        <MetricCard
+          title="Top Performer"
           value={bestPerformer ? bestPerformer.sales_rep_name : 'No data'}
           subtitle={bestPerformer 
-            ? `${formatPercentage(bestPerformer.percentTarget)} of target (${formatCurrency(bestPerformer.revenue)}/${formatCurrency(bestPerformer.target)})`
+            ? `${formatPercentage(bestPerformer.percentTarget)} of target (${formatCurrency(bestPerformer.revenue)})`
             : 'No performance data available'
           }
           trend={bestPerformer ? getPerformanceTrend(bestPerformer.percentTarget) : undefined}
+          className="bg-gradient-to-br from-card to-card/80 border-success/20 hover:border-success/40 transition-all duration-300"
         />
       </div>
     </div>
