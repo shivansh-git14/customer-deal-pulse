@@ -14,8 +14,8 @@ interface MetricCardProps {
 
 export const MetricCard = ({ title, value, subtitle, trend, icon, className = '', onClick, isClickable = false }: MetricCardProps) => {
   const getTrendIcon = () => {
-    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-[hsl(var(--success))]" />;
-    if (trend === 'down') return <TrendingDown className="h-4 w-4 text-[hsl(var(--destructive))]" />;
+    if (trend === 'up') return <TrendingUp className="h-4 w-4 text-emerald-500" />;
+    if (trend === 'down') return <TrendingDown className="h-4 w-4 text-red-500" />;
     return null;
   };
 
@@ -35,28 +35,28 @@ export const MetricCard = ({ title, value, subtitle, trend, icon, className = ''
 
   return (
     <Card 
-      className={`transition-all duration-200 border-0 shadow-sm bg-card/50 backdrop-blur-sm ${isClickable ? 'cursor-pointer hover:shadow-md hover:bg-card/80' : ''} ${className}`}
+      className={`w-full transition-all duration-200 ${isClickable ? 'cursor-pointer hover:shadow-lg hover:scale-[1.02] hover:border-primary/20' : ''} ${className}`}
       onClick={onClick}
     >
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium text-muted-foreground">
+          {title}
+        </CardTitle>
         <div className="flex items-center gap-2">
+          {getTrendIcon()}
           {icon}
-          <CardTitle className="text-sm font-medium text-muted-foreground">
-            {title}
-          </CardTitle>
         </div>
-        {getTrendIcon()}
       </CardHeader>
-      <CardContent className="pt-0">
-        <div className="text-3xl font-bold text-foreground mb-1">{formatValue(value)}</div>
+      <CardContent>
+        <div className="text-2xl font-bold text-foreground">{formatValue(value)}</div>
         {subtitle && (
-          <p className="text-sm text-muted-foreground">
+          <p className="text-xs text-muted-foreground mt-1">
             {subtitle}
           </p>
         )}
         {isClickable && (
           <p className="text-xs text-primary mt-2 font-medium">
-            Click to view details
+            Click to view trend
           </p>
         )}
       </CardContent>

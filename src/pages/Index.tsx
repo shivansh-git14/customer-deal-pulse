@@ -1,29 +1,24 @@
 
 import { useState } from 'react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { DateRangeSlider } from '@/components/dashboard/DateRangeSlider';
 import { OverviewMetrics } from '@/components/dashboard/OverviewMetrics';
 import { CriticalAlerts } from '@/components/dashboard/CriticalAlerts';
-import { TeamOverview } from '@/components/dashboard/TeamOverview';
 import { useDashboardData, DashboardFilters as FiltersType } from '@/hooks/useDashboardData';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { BarChart3, Users } from 'lucide-react';
+import { BarChart3, TrendingUp } from 'lucide-react';
 
 const Index = () => {
   const [filters, setFilters] = useState<FiltersType>({
-    startDate: '2023-01-01',
+    startDate: '2023-01-01', // Set default to show existing data
     endDate: '2025-12-31'
   });
-  
-  const { data: dashboardData, loading: dashboardLoading, error } = useDashboardData(filters);
-  
-  console.log('Dashboard state:', { dashboardData, dashboardLoading, error });
+  const { data, loading, error } = useDashboardData(filters);
 
   if (error) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="container mx-auto px-6 py-8">
+      <div className="min-h-screen bg-gradient-to-br from-primary/10 to-secondary/10">
+        <div className="container mx-auto px-4 py-8">
           <Alert variant="destructive">
             <AlertTitle>Error Loading Dashboard</AlertTitle>
             <AlertDescription>{error}</AlertDescription>
@@ -34,77 +29,63 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="border-b bg-card/50 backdrop-blur-sm">
-        <div className="container mx-auto px-6 py-6">
-          <div className="flex items-center gap-4 mb-6">
-            <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-              <BarChart3 className="h-6 w-6 text-primary" />
+    <div className="min-h-screen bg-gradient-to-br from-primary/5 via-background to-secondary/5">
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <BarChart3 className="h-8 w-8 text-primary" />
+              <h1 className="text-4xl font-bold bg-gradient-to-r from-primary to-primary/70 bg-clip-text text-transparent">
+                Sales RCA Dashboard
+              </h1>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Sales RCA Dashboard</h1>
-              <p className="text-muted-foreground">Real-time sales performance analytics and insights</p>
-            </div>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+              Comprehensive overview of sales performance with real-time analytics and insights
+            </p>
           </div>
 
-          {/* Filters */}
-          {dashboardData ? (
-            <DateRangeSlider
-              filters={filters}
-              onFiltersChange={setFilters}
-              availableManagers={dashboardData.availableManagers}
-            />
-          ) : dashboardLoading ? (
-            <Skeleton className="h-20 w-full rounded-lg" />
-          ) : null}
-        </div>
-      </div>
+          <div className="space-y-6">
+            {/* Filters */}
+            <div>
+              {data ? (
+                <DateRangeSlider
+                  filters={filters}
+                  onFiltersChange={setFilters}
+                  availableManagers={data.availableManagers}
+                />
+              ) : loading ? (
+                <Skeleton className="h-32 w-full rounded-lg" />
+              ) : null}
+            </div>
 
-      <div className="container mx-auto px-6 py-8">
-        <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="overview" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Overview
-            </TabsTrigger>
-            <TabsTrigger value="team" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Team
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="overview" className="space-y-6">
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
-              <div className="xl:col-span-3">
-                {dashboardLoading ? (
+            {/* Main Content Grid */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {/* Metrics - Takes up 2/3 of the width */}
+              <div className="lg:col-span-2">
+                {loading ? (
                   <div className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                      <Skeleton className="h-32 w-full rounded-lg" />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <Skeleton className="h-32 w-full rounded-lg" />
                       <Skeleton className="h-32 w-full rounded-lg" />
                     </div>
+                    <Skeleton className="h-32 w-full rounded-lg" />
                   </div>
-                ) : dashboardData ? (
-                  <OverviewMetrics data={dashboardData} filters={filters} />
+                ) : data ? (
+                  <OverviewMetrics data={data} filters={filters} />
                 ) : null}
               </div>
 
-              <div className="xl:col-span-1">
-                {dashboardLoading ? (
+              {/* Critical Alerts - Takes up 1/3 of the width */}
+              <div className="lg:col-span-1">
+                {loading ? (
                   <Skeleton className="h-96 w-full rounded-lg" />
-                ) : dashboardData ? (
-                  <CriticalAlerts alerts={dashboardData.criticalAlerts} />
+                ) : data ? (
+                  <CriticalAlerts alerts={data.criticalAlerts} />
                 ) : null}
               </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="team">
-            <div className="text-center py-12">
-              <p className="text-muted-foreground">Team view coming soon...</p>
-            </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        </div>
       </div>
     </div>
   );

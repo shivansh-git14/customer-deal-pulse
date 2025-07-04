@@ -1,7 +1,7 @@
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, DollarSign, TrendingDown } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CriticalAlert } from '@/hooks/useDashboardData';
 
 interface CriticalAlertsProps {
@@ -13,7 +13,7 @@ export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
     if (amount >= 1000000) {
       return `$${(amount / 1000000).toFixed(1)}M`;
     } else if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(0)}K`;
+      return `$${(amount / 1000).toFixed(1)}K`;
     }
     return `$${amount.toLocaleString()}`;
   };
@@ -21,60 +21,64 @@ export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
   const totalAtRisk = alerts.reduce((sum, alert) => sum + alert.revenueAtRisk, 0);
 
   return (
-    <Card className="h-fit border-0 shadow-sm bg-card/50 backdrop-blur-sm">
-      <CardHeader className="pb-4">
-        <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-destructive/10 flex items-center justify-center">
-            <AlertTriangle className="h-4 w-4 text-destructive" />
+    <Card className="w-full h-fit border-destructive/20 bg-destructive/5">
+      <CardHeader className="pb-3">
+        <CardTitle className="flex items-center justify-between text-lg">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="h-5 w-5 text-destructive" />
+            <span className="text-destructive">Critical Alerts</span>
           </div>
-          <CardTitle className="text-lg font-semibold">Critical Alerts</CardTitle>
-        </div>
-        {alerts.length > 0 && (
-          <div className="flex items-center gap-2 text-sm">
-            <TrendingDown className="h-4 w-4 text-destructive" />
-            <span className="font-medium text-destructive">{formatCurrency(totalAtRisk)} at risk</span>
-            <span className="text-muted-foreground">• {alerts.length} deals</span>
-          </div>
-        )}
+          {alerts.length > 0 && (
+            <div className="flex items-center gap-1 text-sm">
+              <DollarSign className="h-4 w-4 text-destructive" />
+              <span className="font-bold text-destructive">
+                {formatCurrency(totalAtRisk)}
+              </span>
+            </div>
+          )}
+        </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="pt-0">
         {alerts.length === 0 ? (
-          <div className="text-center py-8">
-            <div className="w-12 h-12 rounded-full bg-success/10 flex items-center justify-center mx-auto mb-3">
-              <AlertTriangle className="h-6 w-6 text-success" />
-            </div>
-            <p className="text-sm text-muted-foreground">
-              No critical alerts
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              All deals are performing well
-            </p>
-          </div>
+          <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950">
+            <AlertTriangle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <AlertDescription className="text-emerald-800 dark:text-emerald-200">
+              No critical alerts. All deals are tracking well!
+            </AlertDescription>
+          </Alert>
         ) : (
-          alerts.map((alert) => (
-            <div
-              key={alert.deal_id}
-              className="p-4 rounded-lg border border-destructive/10 bg-destructive/5 hover:bg-destructive/10 transition-colors"
-            >
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1">
-                  <h4 className="font-semibold text-sm text-foreground">{alert.customer_name}</h4>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Rep: {alert.sales_rep_name}
-                  </p>
+          <div className="space-y-3 max-h-96 overflow-y-auto">
+            {alerts.slice(0, 8).map((alert, index) => (
+              <Alert key={alert.deal_id} variant="destructive" className="border-l-4 border-l-destructive transition-all hover:shadow-sm border-destructive/30 bg-destructive/10">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-start gap-3 flex-1">
+                    <TrendingDown className="h-4 w-4 mt-0.5 text-destructive flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-sm truncate">
+                        {alert.customer_name}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        <span className="font-medium">{alert.sales_rep_name}</span> • {alert.deal_stage}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0 ml-2">
+                    <div className="font-bold text-destructive text-sm">
+                      {formatCurrency(alert.revenueAtRisk)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      at risk
+                    </div>
+                  </div>
                 </div>
-                <Badge variant="outline" className="text-xs border-destructive/20 text-destructive">
-                  {alert.deal_stage}
-                </Badge>
+              </Alert>
+            ))}
+            {alerts.length > 8 && (
+              <div className="text-center text-xs text-muted-foreground pt-2">
+                +{alerts.length - 8} more alerts
               </div>
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-medium text-muted-foreground">Revenue at Risk</span>
-                <span className="font-bold text-destructive">
-                  {formatCurrency(alert.revenueAtRisk)}
-                </span>
-              </div>
-            </div>
-          ))
+            )}
+          </div>
         )}
       </CardContent>
     </Card>
