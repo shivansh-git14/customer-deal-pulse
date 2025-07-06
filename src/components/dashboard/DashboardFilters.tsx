@@ -4,34 +4,27 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { DashboardFilters as FiltersType } from '@/hooks/useDashboardData';
+import { useDashboard } from '@/contexts/DashboardContext';
 
-interface DashboardFiltersProps {
-  filters: FiltersType;
-  onFiltersChange: (filters: FiltersType) => void;
-  availableManagers: Array<{
-    sales_rep_id: number;
-    sales_rep_name: string;
-  }>;
-}
+export const DashboardFilters = () => {
+  const { filters, setFilters, availableManagers } = useDashboard();
 
-export const DashboardFilters = ({ filters, onFiltersChange, availableManagers }: DashboardFiltersProps) => {
   const handleDateChange = (field: 'startDate' | 'endDate', value: string) => {
-    onFiltersChange({
+    setFilters({
       ...filters,
       [field]: value || undefined
     });
   };
 
   const handleManagerChange = (value: string) => {
-    onFiltersChange({
+    setFilters({
       ...filters,
       salesManagerId: value === 'all' ? undefined : parseInt(value)
     });
   };
 
   const clearFilters = () => {
-    onFiltersChange({});
+    setFilters({});
   };
 
   return (

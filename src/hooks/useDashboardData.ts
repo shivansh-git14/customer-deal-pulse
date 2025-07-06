@@ -14,6 +14,7 @@ export interface CriticalAlert {
   sales_rep_name: string;
   deal_stage: string;
   revenueAtRisk: number;
+  sales_manager?: string; // Optional for expanded card UI
 }
 
 export interface DashboardData {

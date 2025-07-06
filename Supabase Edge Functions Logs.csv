@@ -1,0 +1,764 @@
+event_message,event_type,function_id,id,level,timestamp
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,8c0d8e0f-4934-48be-a711-cfed8ab5f8e8,log,1751636335174000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,b71f3171-40ab-47f3-b390-31ca982cbbc3,log,1751636323008000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,c4407b9d-58d1-4a43-a0d8-90d17ba23b7d,log,1751636306661000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,4f144ee1-5c0d-4a2a-a254-febed38fc973,log,1751636264286000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 3256500,
+      target: 1354000,
+      completionPercentage: 240.5096011816839
+    },
+    bestPerformer: {
+      sales_rep_id: 6,
+      sales_rep_name: ""Alice Brown"",
+      revenue: 369500,
+      target: 50000,
+      percentTarget: 739
+    },
+    avgDealSize: 130260,
+    criticalAlerts: [
+      {
+        deal_id: 92,
+        customer_name: ""Entertainment Group"",
+        sales_rep_name: ""Eric Johnson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 260000
+      },
+      {
+        deal_id: 52,
+        customer_name: ""Property Management"",
+        sales_rep_name: ""Chris Anderson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 250000
+      },
+      {
+        deal_id: 88,
+        customer_name: ""Internet Provider"",
+        sales_rep_name: ""Alex Thompson"",
+        deal_stage: ""closed_won"",
+        revenueAtRisk: 215000
+      },
+      {
+        deal_id: 96,
+        customer_name: ""Government Agency"",
+        sales_rep_name: ""Ian Miller"",
+        deal_stage: ""proposal"",
+        revenueAtRisk: 195000
+      },
+      {
+        deal_id: 21,
+        customer_name: ""Auto Parts Inc"",
+        sales_rep_name: ""Julia Taylor"",
+        deal_stage: ""proposal"",
+        revenueAtRisk: 180000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,663e4f6d-aace-4db1-b94c-a057afa88677,log,1751636135522000
+"Critical alerts (high risk deals): 5
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,bfc4be39-7f24-4258-aa34-1d91e203a228,log,1751636135495000
+"Best performer by % target: {
+  sales_rep_id: 6,
+  sales_rep_name: ""Alice Brown"",
+  revenue: 369500,
+  target: 50000,
+  percentTarget: 739
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,812a001a-31e9-45e8-8e74-e5140dcf393c,log,1751636135454000
+"Average deal size: 130260 from 25 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,6e59747e-e093-4f8c-a6b6-5ff8f85064e8,log,1751636135454000
+"Total target: 1354000 Completion: 240.5096011816839
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,7ddf0e99-385e-4b6c-97ef-48395f2c6ef8,log,1751636135416000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,e217cb71-6842-41fb-b472-541ab8656c10,log,1751636135415000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,f7bb928c-9725-420b-bd86-8184897e5f2d,log,1751636135372000
+"Total revenue calculated: 3256500
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,1f2f3aea-157d-4f5b-b8fd-7d1e9096edab,log,1751636135372000
+"Team rep IDs for manager 1 : [
+   6,  7,  8,  9, 26, 27, 28,
+  29, 30, 31, 32, 33, 34, 35,
+  76, 77, 86, 91, 96
+]
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,dea0414d-949f-4014-b14d-b6306fc0a0ec,log,1751636135338000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"", salesManagerId: 1 }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,5e89be63-032b-48eb-a0cb-d6dcf06ca39f,log,1751636135240000
+booted (time: 23ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,02a24a15-5446-4a43-8870-0bc839d85e45,log,1751636135150000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 16587500,
+      target: 6999000,
+      completionPercentage: 236.9981425917988
+    },
+    bestPerformer: {
+      sales_rep_id: 45,
+      sales_rep_name: ""Tara Hill"",
+      revenue: 680000,
+      target: 46000,
+      percentTarget: 1478.2608695652175
+    },
+    avgDealSize: 157976.19047619047,
+    criticalAlerts: [
+      {
+        deal_id: 100,
+        customer_name: ""Public Works"",
+        sales_rep_name: ""Mark Lewis"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 305000
+      },
+      {
+        deal_id: 37,
+        customer_name: ""Solar Power Co"",
+        sales_rep_name: ""Zack Nelson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 300000
+      },
+      {
+        deal_id: 27,
+        customer_name: ""Electronics Store"",
+        sales_rep_name: ""Paula Young"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 285000
+      },
+      {
+        deal_id: 30,
+        customer_name: ""Grocery Chain"",
+        sales_rep_name: ""Steve Lopez"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      },
+      {
+        deal_id: 60,
+        customer_name: ""Litigation Support"",
+        sales_rep_name: ""Kevin Clark"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,4655a656-4f6c-449d-a1ce-0fe804180cba,log,1751636123276000
+"Critical alerts (high risk deals): 5
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,14d8a8cb-3558-47e9-893a-4672e17afadd,log,1751636123244000
+"Average deal size: 157976.19047619047 from 105 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,faded99e-beb4-4ec6-ba45-2437d886cbf8,log,1751636123212000
+"Best performer by % target: {
+  sales_rep_id: 45,
+  sales_rep_name: ""Tara Hill"",
+  revenue: 680000,
+  target: 46000,
+  percentTarget: 1478.2608695652175
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,26e09d64-b4c9-4a58-bac2-bc86aaeb63c4,log,1751636123212000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,a6ade2d5-b86d-4ab1-a2b6-5ee25b8fdf01,log,1751636123169000
+"Total target: 6999000 Completion: 236.9981425917988
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,ad086180-b629-4e17-bff2-92f0f5949b3a,log,1751636123169000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,95f4d77f-e3fb-4300-8729-f5df537ed7b6,log,1751636123124000
+"Total revenue calculated: 16587500
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,94e71e25-896a-46ed-a94f-88802f0aab4c,log,1751636123124000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"" }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,1796b6a9-37f6-476c-b196-2484a475473a,log,1751636123065000
+booted (time: 25ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,d7986a4f-f2aa-4361-ad35-d6dbe6541a28,log,1751636122987000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 16587500,
+      target: 6999000,
+      completionPercentage: 236.9981425917988
+    },
+    bestPerformer: {
+      sales_rep_id: 45,
+      sales_rep_name: ""Tara Hill"",
+      revenue: 680000,
+      target: 46000,
+      percentTarget: 1478.2608695652175
+    },
+    avgDealSize: 157976.19047619047,
+    criticalAlerts: [
+      {
+        deal_id: 100,
+        customer_name: ""Public Works"",
+        sales_rep_name: ""Mark Lewis"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 305000
+      },
+      {
+        deal_id: 37,
+        customer_name: ""Solar Power Co"",
+        sales_rep_name: ""Zack Nelson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 300000
+      },
+      {
+        deal_id: 27,
+        customer_name: ""Electronics Store"",
+        sales_rep_name: ""Paula Young"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 285000
+      },
+      {
+        deal_id: 30,
+        customer_name: ""Grocery Chain"",
+        sales_rep_name: ""Steve Lopez"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      },
+      {
+        deal_id: 60,
+        customer_name: ""Litigation Support"",
+        sales_rep_name: ""Kevin Clark"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,f9ce98c3-ef22-428c-95f2-e8765cf82085,log,1751636107202000
+"Critical alerts (high risk deals): 5
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,ea8d5197-9d8e-40d3-a428-a2b1acfb86ff,log,1751636107151000
+"Best performer by % target: {
+  sales_rep_id: 45,
+  sales_rep_name: ""Tara Hill"",
+  revenue: 680000,
+  target: 46000,
+  percentTarget: 1478.2608695652175
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,62501db8-b454-4580-9574-3474561a9e2e,log,1751636107098000
+"Average deal size: 157976.19047619047 from 105 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,ee449047-b800-4b25-aa79-7c721d114b5f,log,1751636107098000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,ad62fc08-fe2f-46a8-a22e-5941ff17f109,log,1751636107051000
+"Total target: 6999000 Completion: 236.9981425917988
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,6647aff4-c794-4606-a4ad-4551bfca8049,log,1751636107051000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,a08c8326-e1a8-45dd-a13e-eb6206cacaf4,log,1751636107003000
+"Total revenue calculated: 16587500
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,c22a3c36-bdc7-49f2-ab4b-5352f8ec8dec,log,1751636107003000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"" }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,5cc0fe2a-bef8-422d-9367-c77de46c0a24,log,1751636106750000
+booted (time: 32ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,e48aecf3-05f5-4d66-b5cb-204794cbc44a,log,1751636106634000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 16587500,
+      target: 6999000,
+      completionPercentage: 236.9981425917988
+    },
+    bestPerformer: {
+      sales_rep_id: 45,
+      sales_rep_name: ""Tara Hill"",
+      revenue: 680000,
+      target: 46000,
+      percentTarget: 1478.2608695652175
+    },
+    avgDealSize: 157976.19047619047,
+    criticalAlerts: [
+      {
+        deal_id: 100,
+        customer_name: ""Public Works"",
+        sales_rep_name: ""Mark Lewis"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 305000
+      },
+      {
+        deal_id: 37,
+        customer_name: ""Solar Power Co"",
+        sales_rep_name: ""Zack Nelson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 300000
+      },
+      {
+        deal_id: 27,
+        customer_name: ""Electronics Store"",
+        sales_rep_name: ""Paula Young"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 285000
+      },
+      {
+        deal_id: 30,
+        customer_name: ""Grocery Chain"",
+        sales_rep_name: ""Steve Lopez"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      },
+      {
+        deal_id: 60,
+        customer_name: ""Litigation Support"",
+        sales_rep_name: ""Kevin Clark"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,a8ac38b9-27ec-463f-8fed-6a2c82e98139,log,1751636064848000
+"Critical alerts (high risk deals): 5
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,a92d74d7-8959-4c27-891e-f26ebc5ff123,log,1751636064804000
+"Average deal size: 157976.19047619047 from 105 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,ced3ddcf-62d1-441b-a909-3f066c4778a8,log,1751636064733000
+"Best performer by % target: {
+  sales_rep_id: 45,
+  sales_rep_name: ""Tara Hill"",
+  revenue: 680000,
+  target: 46000,
+  percentTarget: 1478.2608695652175
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,bd37bf77-2f1d-4baf-b3d1-2e381319860f,log,1751636064733000
+"Total target: 6999000 Completion: 236.9981425917988
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,5c00358c-1188-4928-b863-4a0ac85f2a2c,log,1751636064654000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,4d65fc8a-6091-4785-9295-db17cff39cd5,log,1751636064654000
+"Total revenue calculated: 16587500
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,f5f89de4-354f-4f98-aa5f-f796ae38d269,log,1751636064608000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,69772188-4c78-4861-880c-be28a47e4f13,log,1751636064607000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"" }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,f67905c9-f49c-40d8-8cb3-91a0340905f6,log,1751636064328000
+booted (time: 26ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,ad06d1e5-9c63-416d-8abd-98014d478606,log,1751636064263000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,e9b45447-a5d0-4f62-90f2-26762b443df4,log,1751635673906000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,a690df27-72f6-460c-bbd1-684eb5b8204e,log,1751635667613000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,df5c77d9-9df1-4642-80d3-cc5a6c323366,log,1751635663730000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,d8e6d90d-ed7a-4f0e-8238-113ccac882a8,log,1751635657790000
+shutdown,Shutdown,05da9be9-a415-4830-96f5-e28a574e5be8,f11892d7-6784-4743-b750-e27b9a8bbff4,log,1751635652235000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 1095000,
+      target: 855000,
+      completionPercentage: 128.0701754385965
+    },
+    bestPerformer: {
+      sales_rep_id: 22,
+      sales_rep_name: ""Quinn Williams"",
+      revenue: 715000,
+      target: 51000,
+      percentTarget: 1401.9607843137255
+    },
+    avgDealSize: 156428.57142857142,
+    criticalAlerts: [],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,6ac90e27-2edf-4b64-bf1d-aa5471d24b22,log,1751635474379000
+"Critical alerts (high risk deals): 0
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,f5b7c374-28d8-4707-99e5-c17c015f1fc7,log,1751635474350000
+"Best performer by % target: {
+  sales_rep_id: 22,
+  sales_rep_name: ""Quinn Williams"",
+  revenue: 715000,
+  target: 51000,
+  percentTarget: 1401.9607843137255
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,d6c29ce4-a38b-4d2e-af62-9cda628689ef,log,1751635474314000
+"Average deal size: 156428.57142857142 from 7 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,c01c7951-947b-4d04-b9f0-349642751964,log,1751635474314000
+"Total target: 855000 Completion: 128.0701754385965
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,402863da-6309-4b0a-942c-d3c1004e8ec8,log,1751635474284000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,97fa62ca-7055-4ab1-b1d3-42cfd864749c,log,1751635474284000
+"Total revenue calculated: 1095000
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,fcf8e184-bbba-4ceb-89c2-9b6ed49c11e1,log,1751635474254000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,4143f55d-f5df-444d-a504-5e0ddf693cbc,log,1751635474254000
+"Team rep IDs for manager 5 : [
+  22, 23, 24, 25,  66, 67, 68,
+  69, 70, 71, 72,  73, 74, 75,
+  84, 85, 90, 95, 100
+]
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,7f9240d8-affd-4259-bb6a-53a8ea50b17b,log,1751635474218000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"", salesManagerId: 5 }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,69ea5d29-33d7-4258-9f06-83459c2fe530,log,1751635473978000
+booted (time: 38ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,8f2eb986-4230-44f9-831a-7810480047bf,log,1751635473877000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 2548000,
+      target: 858000,
+      completionPercentage: 296.969696969697
+    },
+    bestPerformer: {
+      sales_rep_id: 19,
+      sales_rep_name: ""Nathan Anderson"",
+      revenue: 402000,
+      target: 49000,
+      percentTarget: 820.4081632653061
+    },
+    avgDealSize: 169866.66666666666,
+    criticalAlerts: [
+      {
+        deal_id: 80,
+        customer_name: ""Organic Foods"",
+        sales_rep_name: ""Eva Turner"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 265000
+      },
+      {
+        deal_id: 45,
+        customer_name: ""Freight Company"",
+        sales_rep_name: ""Hugo Parker"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 255000
+      },
+      {
+        deal_id: 49,
+        customer_name: ""Streaming Service"",
+        sales_rep_name: ""Leo Stewart"",
+        deal_stage: ""prospecting"",
+        revenueAtRisk: 160000
+      },
+      {
+        deal_id: 84,
+        customer_name: ""Aviation Services"",
+        sales_rep_name: ""Ivy Evans"",
+        deal_stage: ""prospecting"",
+        revenueAtRisk: 150000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,158a2b27-1ffc-4a43-8292-51ad53b0a9d7,log,1751635467846000
+"Critical alerts (high risk deals): 4
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,91f7b228-7bcb-498a-96c4-d5e2d89a15a2,log,1751635467825000
+"Average deal size: 169866.66666666666 from 15 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,fb96ed97-5072-4750-8f31-bb93948fb313,log,1751635467789000
+"Best performer by % target: {
+  sales_rep_id: 19,
+  sales_rep_name: ""Nathan Anderson"",
+  revenue: 402000,
+  target: 49000,
+  percentTarget: 820.4081632653061
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,ba878098-2e9b-43c2-82c0-0c9a62a58d70,log,1751635467789000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,453e70fc-bcae-4fc2-998d-24a803577a37,log,1751635467765000
+"Total target: 858000 Completion: 296.969696969697
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,92d9c169-0165-4d48-84e2-db8582a30102,log,1751635467765000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,aa695af9-c909-4d84-9ea0-694ca5a8f1d3,log,1751635467744000
+"Total revenue calculated: 2548000
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,4096a208-abff-4c9e-a28f-2c57175477df,log,1751635467744000
+"Team rep IDs for manager 4 : [
+  18, 19, 20, 21, 56, 57, 58,
+  59, 60, 61, 62, 63, 64, 65,
+  82, 83, 89, 94, 99
+]
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,3642cf6f-c1b2-4c65-bd58-58a6ac082887,log,1751635467721000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"", salesManagerId: 4 }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,efe2cff1-5418-4f03-805f-05a57928e3aa,log,1751635467671000
+booted (time: 37ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,0a3cc8f9-2454-4662-ab83-1912eba8fe55,log,1751635467582000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 3726000,
+      target: 872000,
+      completionPercentage: 427.2935779816514
+    },
+    bestPerformer: {
+      sales_rep_id: 15,
+      sales_rep_name: ""Jack Thompson"",
+      revenue: 654000,
+      target: 47000,
+      percentTarget: 1391.4893617021276
+    },
+    avgDealSize: 177428.57142857142,
+    criticalAlerts: [
+      {
+        deal_id: 37,
+        customer_name: ""Solar Power Co"",
+        sales_rep_name: ""Zack Nelson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 300000
+      },
+      {
+        deal_id: 72,
+        customer_name: ""Gene Therapy Co"",
+        sales_rep_name: ""Wendy Adams"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 270000
+      },
+      {
+        deal_id: 41,
+        customer_name: ""Transport Logistics"",
+        sales_rep_name: ""Doug Roberts"",
+        deal_stage: ""proposal"",
+        revenueAtRisk: 200000
+      },
+      {
+        deal_id: 76,
+        customer_name: ""Food Processing"",
+        sales_rep_name: ""Amy Carter"",
+        deal_stage: ""proposal"",
+        revenueAtRisk: 195000
+      },
+      {
+        deal_id: 34,
+        customer_name: ""Online Academy"",
+        sales_rep_name: ""Wendy Adams"",
+        deal_stage: ""prospecting"",
+        revenueAtRisk: 185000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,05d6282d-e751-481a-9f3d-3d1baa2f1110,log,1751635463912000
+"Critical alerts (high risk deals): 5
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,b325f8aa-26e8-4d02-919a-af675dcba7f6,log,1751635463892000
+"Average deal size: 177428.57142857142 from 21 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,765db072-721a-463e-a423-9fb5274aadff,log,1751635463869000
+"Best performer by % target: {
+  sales_rep_id: 15,
+  sales_rep_name: ""Jack Thompson"",
+  revenue: 654000,
+  target: 47000,
+  percentTarget: 1391.4893617021276
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,e1427b31-0e5e-4022-b726-0d0581a1e5a3,log,1751635463869000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,15f67fd8-612f-41f3-9544-006648d3a860,log,1751635463847000
+"Total target: 872000 Completion: 427.2935779816514
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,f3dc3dcc-a18d-4c72-aa13-7536a40d0064,log,1751635463847000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,76ea9efc-90cd-4d5c-9f9d-96686a1a42f0,log,1751635463814000
+"Total revenue calculated: 3726000
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,16c5a4f3-20e2-40a1-a053-47bcfde19c26,log,1751635463814000
+"Team rep IDs for manager 3 : [
+  14, 15, 16, 17, 46, 47, 48,
+  49, 50, 51, 52, 53, 54, 55,
+  80, 81, 88, 93, 98
+]
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,d13d192a-8427-4d66-a543-c17e90ca6633,log,1751635463785000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"", salesManagerId: 3 }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,76a42037-4438-4b77-9576-794a212cf7b5,log,1751635463738000
+booted (time: 20ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,a8503591-c649-4b78-b1d0-42731f412bf2,log,1751635463675000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 5962000,
+      target: 1110000,
+      completionPercentage: 537.1171171171171
+    },
+    bestPerformer: {
+      sales_rep_id: 45,
+      sales_rep_name: ""Tara Hill"",
+      revenue: 680000,
+      target: 46000,
+      percentTarget: 1478.2608695652175
+    },
+    avgDealSize: 161135.13513513515,
+    criticalAlerts: [
+      {
+        deal_id: 100,
+        customer_name: ""Public Works"",
+        sales_rep_name: ""Mark Lewis"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 305000
+      },
+      {
+        deal_id: 27,
+        customer_name: ""Electronics Store"",
+        sales_rep_name: ""Paula Young"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 285000
+      },
+      {
+        deal_id: 30,
+        customer_name: ""Grocery Chain"",
+        sales_rep_name: ""Steve Lopez"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      },
+      {
+        deal_id: 60,
+        customer_name: ""Litigation Support"",
+        sales_rep_name: ""Kevin Clark"",
+        deal_stage: ""qualified"",
+        revenueAtRisk: 275000
+      },
+      {
+        deal_id: 68,
+        customer_name: ""Health Insurance"",
+        sales_rep_name: ""Steve Lopez"",
+        deal_stage: ""closed_won"",
+        revenueAtRisk: 225000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,4c0f68b5-c1d3-46a5-bf73-2c78bcaa33a9,log,1751635458043000
+"Critical alerts (high risk deals): 5
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,b73d2057-127f-4e95-8870-6fc7e6f3944b,log,1751635458016000
+"Average deal size: 161135.13513513515 from 37 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,ac11a76c-e8f1-4415-bac3-e8fdf4e25a8c,log,1751635457979000
+"Best performer by % target: {
+  sales_rep_id: 45,
+  sales_rep_name: ""Tara Hill"",
+  revenue: 680000,
+  target: 46000,
+  percentTarget: 1478.2608695652175
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,cad39b34-a623-447d-88ba-e2b86e6e8a34,log,1751635457979000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,e8d2bc59-0717-4b35-9b4a-e5daab6443a1,log,1751635457953000
+"Total target: 1110000 Completion: 537.1171171171171
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,19ff8492-1c93-46b6-8416-6d59094f5bea,log,1751635457953000
+"Total revenue calculated: 5962000
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,913c6e47-0425-4326-a435-963a42e4e1ce,log,1751635457932000
+"Raw revenue data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,6dae44a4-3177-47ee-96b3-04eb73bd19a5,log,1751635457932000
+"Team rep IDs for manager 2 : [
+  10, 11, 12, 13, 36, 37, 38,
+  39, 40, 41, 42, 43, 44, 45,
+  78, 79, 87, 92, 97
+]
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,904ea70a-fc64-4cc5-8cfb-fbdbc35e826d,log,1751635457885000
+"Dashboard overview request with filters: { startDate: ""2023-01-01"", endDate: ""2025-12-31"", salesManagerId: 2 }
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,6ec2d8e6-2aaa-437d-b01e-9e75c0cf39a6,log,1751635457831000
+booted (time: 22ms),Boot,05da9be9-a415-4830-96f5-e28a574e5be8,3fb022a2-b26f-4ba1-b966-379b3d30ab27,log,1751635457764000
+"Dashboard overview response: {
+  success: true,
+  data: {
+    overallRevenue: {
+      total: 3256500,
+      target: 1354000,
+      completionPercentage: 240.5096011816839
+    },
+    bestPerformer: {
+      sales_rep_id: 6,
+      sales_rep_name: ""Alice Brown"",
+      revenue: 369500,
+      target: 50000,
+      percentTarget: 739
+    },
+    avgDealSize: 130260,
+    criticalAlerts: [
+      {
+        deal_id: 92,
+        customer_name: ""Entertainment Group"",
+        sales_rep_name: ""Eric Johnson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 260000
+      },
+      {
+        deal_id: 52,
+        customer_name: ""Property Management"",
+        sales_rep_name: ""Chris Anderson"",
+        deal_stage: ""negotiation"",
+        revenueAtRisk: 250000
+      },
+      {
+        deal_id: 88,
+        customer_name: ""Internet Provider"",
+        sales_rep_name: ""Alex Thompson"",
+        deal_stage: ""closed_won"",
+        revenueAtRisk: 215000
+      },
+      {
+        deal_id: 96,
+        customer_name: ""Government Agency"",
+        sales_rep_name: ""Ian Miller"",
+        deal_stage: ""proposal"",
+        revenueAtRisk: 195000
+      },
+      {
+        deal_id: 21,
+        customer_name: ""Auto Parts Inc"",
+        sales_rep_name: ""Julia Taylor"",
+        deal_stage: ""proposal"",
+        revenueAtRisk: 180000
+      }
+    ],
+    availableManagers: [
+      { sales_rep_id: 1, sales_rep_name: ""John Smith"" },
+      { sales_rep_id: 2, sales_rep_name: ""Sarah Johnson"" },
+      { sales_rep_id: 3, sales_rep_name: ""Michael Chen"" },
+      { sales_rep_id: 4, sales_rep_name: ""Emily Davis"" },
+      { sales_rep_id: 5, sales_rep_name: ""Robert Wilson"" }
+    ]
+  }
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,1f88af58-dd8f-4932-83a8-794591608a6c,log,1751635452800000
+"Critical alerts (high risk deals): 5
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,0e8e353f-7e05-4e3b-9f8c-bb979a2da8f7,log,1751635452751000
+"Best performer by % target: {
+  sales_rep_id: 6,
+  sales_rep_name: ""Alice Brown"",
+  revenue: 369500,
+  target: 50000,
+  percentTarget: 739
+}
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,4029f386-d689-47a2-a7c4-b9a28c083209,log,1751635452707000
+"Average deal size: 130260 from 25 deals
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,53d6d70d-b665-4bff-a46d-a7c6babc815e,log,1751635452707000
+"Raw targets data: 105 records
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,dcbf0be7-f763-47f3-af4f-a33cc97e1867,log,1751635452664000
+"Total target: 1354000 Completion: 240.5096011816839
+",Log,05da9be9-a415-4830-96f5-e28a574e5be8,3157ca93-c473-4d63-b207-98e974bddf42,log,1751635452664000

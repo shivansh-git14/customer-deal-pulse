@@ -22,6 +22,53 @@ A comprehensive sales performance management dashboard built with modern web tec
 - **Critical Alerts Panel**: High-priority deals requiring attention
 - **Advanced Filters**: Date range slider and manager selection with reset functionality
 
+## Local Development
+
+### Prerequisites
+- Node.js (v16 or later) and npm
+- [Supabase](https://supabase.com) account (for your own database instance)
+
+### Setup Instructions
+
+1. **Clone the repository**
+   ```sh
+   git clone <YOUR_GIT_URL>
+   cd <YOUR_PROJECT_NAME>
+   ```
+
+2. **Install dependencies**
+   ```sh
+   npm install
+   ```
+
+3. **Set up environment variables**
+   - Create a `.env` file in the project root
+   - Add your Supabase credentials:
+     ```
+     VITE_SUPABASE_URL=your_supabase_project_url
+     VITE_SUPABASE_ANON_KEY=your_supabase_anon_key
+     ```
+   - Replace the values with your actual Supabase project credentials
+
+4. **Start the development server**
+   ```sh
+   npm run dev
+   ```
+   The application will be available at `http://localhost:8080`
+
+### Using Lovable (Alternative)
+
+You can also edit this project directly through the [Lovable Project](https://lovable.dev/projects/7b2335a9-9271-41a9-95e1-a05290a75ea0) interface.
+
+## Environment Variables
+
+The following environment variables are required for the application to function:
+
+- `VITE_SUPABASE_URL`: Your Supabase project URL
+- `VITE_SUPABASE_ANON_KEY`: Your Supabase anon/public key
+
+⚠️ **Important**: Never commit your `.env` file to version control. It's already included in `.gitignore`.
+
 ## How can I edit this code?
 
 There are several ways of editing your application.

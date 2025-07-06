@@ -155,8 +155,8 @@ Deno.serve(async (req) => {
         is_high_risk,
         sales_rep_id,
         customer_id,
-        sales_reps!inner(sales_rep_name, sales_rep_manager_id),
-        customers!inner(customer_name)
+        sales_reps(sales_rep_name, sales_rep_manager_id),
+customers(customer_name)
       `)
       .eq('is_high_risk', 'Yes');
 
@@ -170,10 +170,10 @@ Deno.serve(async (req) => {
       ) || [];
     }
 
-    // Sort by max_deal_potential (revenue at risk) descending
+    // Sort by max_deal_potential (revenue at risk) descending and return all high risk deals
     const criticalAlerts = filteredHighRiskDeals?.sort((a, b) => 
       (Number(b.max_deal_potential) || 0) - (Number(a.max_deal_potential) || 0)
-    ).slice(0, 5) || []; // Show top 5 high-risk deals
+    ) || []; // Return all high-risk deals
 
     console.log('Critical alerts (high risk deals):', criticalAlerts.length);
 
