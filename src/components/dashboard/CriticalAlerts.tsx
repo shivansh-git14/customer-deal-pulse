@@ -1,15 +1,15 @@
 
 import { AlertTriangle, DollarSign, TrendingDown } from 'lucide-react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { CriticalAlert } from '@/hooks/useDashboardData';
+import { useState } from 'react';
 
 interface CriticalAlertsProps {
   alerts: CriticalAlert[];
 }
 
-import { useState } from 'react';
-
+// --- ExpandableNewDealAlerts implementation ---
 interface ExpandableAlertCardProps {
   alert: CriticalAlert;
 }
@@ -120,7 +120,7 @@ const AllAlertsModal = ({ isOpen, onClose, alerts }: AllAlertsModalProps) => {
   );
 };
 
-export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
+const ExpandableNewDealAlerts = ({ alerts }: { alerts: CriticalAlert[] }) => {
   const [showAll, setShowAll] = useState(false);
   const formatCurrency = (amount: number) => {
     if (amount >= 1000000) {
@@ -139,7 +139,7 @@ export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
         <CardTitle className="flex items-center justify-between text-lg">
           <div className="flex items-center gap-2">
             <AlertTriangle className="h-5 w-5 text-destructive" />
-            <span className="text-destructive">Critical Alerts</span>
+            <span className="text-destructive">New Deal Alerts</span>
           </div>
           {alerts.length > 0 && (
             <div className="flex items-center gap-1 text-sm">
@@ -156,13 +156,13 @@ export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
           <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950">
             <AlertTriangle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
             <AlertDescription className="text-emerald-800 dark:text-emerald-200">
-              No critical alerts. All deals are tracking well!
+              No alerts in this category.
             </AlertDescription>
           </Alert>
         ) : (
           <div className="space-y-3 max-h-96 overflow-y-auto">
             {/* Expandable Cards: Only show customer name and at-risk amount collapsed, expand for more */}
-            {alerts.slice(0, 3).map((alert, index) => (
+            {alerts.slice(0, 3).map((alert) => (
               <ExpandableAlertCard key={alert.deal_id} alert={alert} />
             ))}
             {/* View More Button if more than 3 alerts */}
@@ -185,5 +185,43 @@ export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
         )}
       </CardContent>
     </Card>
+  );
+};
+// --- END ExpandableNewDealAlerts ---
+
+export const CriticalAlerts = ({ alerts }: CriticalAlertsProps) => {
+  // Per user request, all current alerts are considered "New Deal Alerts"
+  const newDealAlerts = alerts;
+  // Per user request, "Repeat Deal Alerts" are empty for now
+  const repeatDealAlerts: CriticalAlert[] = [];
+
+  return (
+    <div className="space-y-6">
+      <div className="w-full">
+  <ExpandableNewDealAlerts alerts={newDealAlerts} />
+</div>
+      <Card className="w-full h-fit border-destructive/20 bg-destructive/5">
+        <CardHeader className="pb-3">
+          <CardTitle className="flex items-center justify-between text-lg">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-destructive" />
+              <span className="text-destructive">Repeat Deal Alerts</span>
+            </div>
+            <div className="flex items-center gap-1 text-sm">
+              <DollarSign className="h-4 w-4 text-destructive" />
+              <span className="font-bold text-destructive">0</span>
+            </div>
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="pt-0">
+          <Alert className="border-emerald-200 bg-emerald-50 dark:border-emerald-800 dark:bg-emerald-950">
+            <AlertTriangle className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+            <AlertDescription className="text-emerald-800 dark:text-emerald-200">
+              No alerts in this category.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    </div>
   );
 };

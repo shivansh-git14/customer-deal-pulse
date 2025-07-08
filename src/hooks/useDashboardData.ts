@@ -14,6 +14,7 @@ export interface CriticalAlert {
   sales_rep_name: string;
   deal_stage: string;
   revenueAtRisk: number;
+  deal_type: 'New Deal' | 'Repeat Deal';
   sales_manager?: string; // Optional for expanded card UI
 }
 
@@ -31,6 +32,7 @@ export interface DashboardData {
     percentTarget: number;
   } | null;
   avgDealSize: number;
+  avgActivitiesPerRep: number;
   criticalAlerts: CriticalAlert[];
   availableManagers: Array<{
     sales_rep_id: number;

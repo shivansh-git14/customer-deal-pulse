@@ -69,15 +69,11 @@ Tracks current sales opportunities and their status.
 |--------|------|-------------|
 | deal_id | SERIAL | Primary key |
 | customer_id | INTEGER | References customers(customer_id) |
-| deal_name | VARCHAR(255) | Name/description of the deal |
-| deal_value | DECIMAL(12,2) | Potential deal value |
+| max_deal_potential | DECIMAL(12,2) | Potential deal value |
 | deal_stage | VARCHAR(50) | Current stage in sales process |
-| expected_close_date | DATE | Projected close date |
-| probability_percent | INTEGER | 0-100% likelihood of closing |
+| participation_propensity | INTEGER | 0-100% likelihood of closing |
 | sales_rep_id | INTEGER | References sales_reps(sales_rep_id) |
 | is_high_risk | VARCHAR(3) | 'Yes' if deal is at risk |
-| risk_reason | TEXT | Description of risk factors |
-| last_updated | TIMESTAMP | When the deal was last updated |
 
 ## Revenue
 
@@ -119,7 +115,7 @@ Tracks sales activities and interactions.
 |--------|------|-------------|
 | event_id | SERIAL | Primary key |
 | event_type | VARCHAR(50) | Type of event (call/meeting/email) |
-| event_date | TIMESTAMP | When the event occurred |
+| event_timestamp | TIMESTAMP | When the event occurred |
 | sales_rep_id | INTEGER | References sales_reps(sales_rep_id) |
 | customer_id | INTEGER | References customers(customer_id) |
 | deal_id | INTEGER | References deals_current(deal_id) |
@@ -173,7 +169,6 @@ Tracks sales activities and interactions.
 ### Get all high-risk deals with customer and rep info
 ```sql
 SELECT 
-    d.deal_name,
     d.deal_value,
     d.deal_stage,
     c.customer_name,

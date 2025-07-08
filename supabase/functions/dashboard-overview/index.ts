@@ -24,8 +24,8 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+    // Get the dashboard filters from the request body
     const { filters } = await req.json() as { filters: DashboardFilters };
-    
     console.log('Dashboard overview request with filters:', filters);
 
     // Get team members based on sales manager filter
@@ -54,7 +54,6 @@ Deno.serve(async (req) => {
 
     const { data: revenueData, error: revenueError } = await revenueQuery;
     if (revenueError) throw revenueError;
-
     console.log('Raw revenue data:', revenueData?.length || 0, 'records');
 
     // Filter by sales manager if specified
@@ -80,7 +79,6 @@ Deno.serve(async (req) => {
 
     const { data: targetsData, error: targetsError } = await targetsQuery;
     if (targetsError) throw targetsError;
-
     console.log('Raw targets data:', targetsData?.length || 0, 'records');
 
     // Filter targets by sales manager if specified
@@ -91,7 +89,6 @@ Deno.serve(async (req) => {
 
     const totalTarget = filteredTargetsData?.reduce((sum, target) => sum + (Number(target.target_value) || 0), 0) || 0;
     const targetCompletion = totalTarget > 0 ? (totalRevenue / totalTarget) * 100 : 0;
-
     console.log('Total target:', totalTarget, 'Completion:', targetCompletion);
 
     // 2. Find Best Performer by % Target (revenue/target ratio)
@@ -99,27 +96,14 @@ Deno.serve(async (req) => {
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name, sales_rep_manager_id');
 
-    // Calculate % target for each sales rep
     const repPerformance = salesRepsData?.map(rep => {
-      // Only include sales reps who have a manager (not the managers themselves)
-      if (!rep.sales_rep_manager_id) {
-        return null;
-      }
+      if (!rep.sales_rep_manager_id) return null;
+      if (filters.salesManagerId && rep.sales_rep_manager_id !== filters.salesManagerId) return null;
 
-      // Filter by manager if specified
-      if (filters.salesManagerId && rep.sales_rep_manager_id !== filters.salesManagerId) {
-        return null;
-      }
-
-      // Calculate rep's revenue for the period
       const repRevenue = filteredRevenueData?.filter(rev => rev.sales_rep === rep.sales_rep_id)
         .reduce((sum, rev) => sum + (Number(rev.revenue) || 0), 0) || 0;
-
-      // Calculate rep's target for the period
       const repTarget = filteredTargetsData?.filter(target => target.sales_rep_id === rep.sales_rep_id)
         .reduce((sum, target) => sum + (Number(target.target_value) || 0), 0) || 0;
-
-      // Calculate % target
       const percentTarget = repTarget > 0 ? (repRevenue / repTarget) * 100 : 0;
 
       return {
@@ -134,51 +118,96 @@ Deno.serve(async (req) => {
     const bestPerformer = repPerformance.reduce((best, current) => {
       return (current?.percentTarget || 0) > (best?.percentTarget || 0) ? current : best;
     }, repPerformance[0]);
-
     console.log('Best performer by % target:', bestPerformer);
 
-    // 3. Calculate Average Deal Size - Use revenue data directly
+    // 3. Calculate Average Deal Size
     const dealValues = filteredRevenueData?.map(rev => Number(rev.revenue) || 0) || [];
     const avgDealSize = dealValues.length > 0 
       ? dealValues.reduce((sum, val) => sum + val, 0) / dealValues.length 
       : 0;
-
     console.log('Average deal size:', avgDealSize, 'from', dealValues.length, 'deals');
 
-    // 4. Get Critical Alerts - High Risk Deals
-    let dealsQuery = supabase
+    // 4. Calculate Average Activities per Rep
+    let eventsQuery = supabase
+      .from('events')
+      .select('sales_rep_id, event_timestamp');
+
+    const { data: eventsData, error: eventsError } = await eventsQuery;
+    if (eventsError) throw eventsError;
+
+    console.log('--- Avg Activity Calculation Debug ---');
+    console.log('Raw eventsData:', Array.isArray(eventsData) ? eventsData.length : 0);
+    
+    let filteredEvents = Array.isArray(eventsData) ? eventsData.filter(event => {
+      const eventDate = event.event_timestamp?.split('T')[0];
+      const isAfterStart = !filters.startDate || eventDate >= filters.startDate;
+      const isBeforeEnd = !filters.endDate || eventDate <= filters.endDate;
+      return isAfterStart && isBeforeEnd;
+    }) : [];
+    
+    if (filters.salesManagerId && teamRepIds.length > 0) {
+      filteredEvents = filteredEvents.filter(event => teamRepIds.includes(event.sales_rep_id));
+    }
+    
+    const totalActivities = filteredEvents.length;
+    
+    let totalRepsInFilter = 0;
+    if (filters.salesManagerId) {
+      totalRepsInFilter = teamRepIds.length;
+    } else {
+      totalRepsInFilter = salesRepsData?.filter(rep => rep.sales_rep_manager_id).length || 0;
+    }
+    
+    const avgActivitiesPerRep = totalRepsInFilter > 0 ? totalActivities / totalRepsInFilter : 0;
+    console.log('Total activities:', totalActivities, 'Total reps:', totalRepsInFilter, 'Avg:', avgActivitiesPerRep);
+    console.log('--- End Avg Activity Calculation Debug ---');
+
+    // --- Critical Alerts (High Risk Deals) ---
+    console.log('[Debug] Processing critical alerts...');
+
+    // Step 1: Fetch raw high-risk deals
+    const { data: highRiskDeals, error: highRiskDealsError } = await supabase
       .from('deals_current')
-      .select(`
-        deal_id,
-        deal_stage,
-        max_deal_potential,
-        is_high_risk,
-        sales_rep_id,
-        customer_id,
-        sales_reps(sales_rep_name, sales_rep_manager_id),
-customers(customer_name)
-      `)
+      .select('deal_id, max_deal_potential, deal_stage, customer_id, sales_rep_id, customers (customer_name), sales_reps (sales_rep_name)')
       .eq('is_high_risk', 'Yes');
 
-    const { data: highRiskDeals } = await dealsQuery;
-
-    // Filter high risk deals by manager if specified
-    let filteredHighRiskDeals = highRiskDeals;
-    if (filters.salesManagerId && teamRepIds.length > 0) {
-      filteredHighRiskDeals = highRiskDeals?.filter(deal => 
-        teamRepIds.includes(deal.sales_rep_id)
-      ) || [];
+    if (highRiskDealsError) {
+      console.error('[Error] Supabase query for high-risk deals failed:', highRiskDealsError.message);
+      return new Response(JSON.stringify({ error: 'Failed to fetch high-risk deals' }), { headers: corsHeaders, status: 500 });
     }
+    console.log(`[Debug] Step 1: Found ${highRiskDeals?.length ?? 0} raw high-risk deals.`);
 
-    // Sort by max_deal_potential (revenue at risk) descending and return all high risk deals
-    const criticalAlerts = filteredHighRiskDeals?.sort((a, b) => 
-      (Number(b.max_deal_potential) || 0) - (Number(a.max_deal_potential) || 0)
-    ) || []; // Return all high-risk deals
+    // Step 2: Apply manager filter if necessary
+    let managerFilteredDeals = highRiskDeals;
+    if (filters.salesManagerId) {
+      console.log(`[Debug] Step 2a: Manager filter applied for salesManagerId: ${filters.salesManagerId}`);
+      const { data: repsData, error: repsError } = await supabase
+        .from('sales_reps')
+        .select('sales_rep_id')
+        .eq('sales_rep_manager_id', filters.salesManagerId);
 
-    console.log('Critical alerts (high risk deals):', criticalAlerts.length);
+      if (repsError) {
+        console.error('[Error] Failed to fetch sales reps for manager:', repsError.message);
+      } else {
+        teamRepIds = repsData?.map((rep: any) => rep.sales_rep_id) || [];
+        console.log(`[Debug] Step 2b: Found ${teamRepIds.length} reps for this manager.`);
+        managerFilteredDeals = highRiskDeals.filter((deal: any) => teamRepIds.includes(deal.sales_rep_id));
+      }
+    }
+    console.log(`[Debug] Step 2c: ${managerFilteredDeals?.length ?? 0} deals remain after manager filter.`);
 
-    // Get sales managers for filter dropdown - these are people who manage others
-    const { data: managersData } = await supabase
+    // Step 3: Map deals to the final alert format
+    const criticalAlerts = managerFilteredDeals.map((deal: any) => ({
+      dealId: deal.deal_id,
+      customerName: deal.customers?.customer_name ?? 'N/A',
+      salesRepName: deal.sales_reps?.sales_rep_name ?? 'N/A',
+      dealStage: deal.deal_stage,
+      revenueAtRisk: deal.max_deal_potential,
+    }));
+    console.log(`[Debug] Step 3: Mapped to ${criticalAlerts.length} critical alerts.`);
+
+    // Get available managers
+    const { data: managersData, error: managersError } = await supabase
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name')
       .is('sales_rep_manager_id', null)
@@ -187,31 +216,28 @@ customers(customer_name)
     const response = {
       success: true,
       data: {
-        overallRevenue: {
-          total: totalRevenue,
-          target: totalTarget,
-          completionPercentage: targetCompletion
-        },
+        overallRevenue: { total: totalRevenue, target: totalTarget, completionPercentage: targetCompletion },
         bestPerformer: bestPerformer ? {
           sales_rep_id: bestPerformer.sales_rep_id,
           sales_rep_name: bestPerformer.sales_rep_name,
           revenue: bestPerformer.revenue,
-          target: bestPerformer.target,
-          percentTarget: bestPerformer.percentTarget
         } : null,
         avgDealSize: avgDealSize,
-        criticalAlerts: criticalAlerts.map(deal => ({
+        avgActivitiesPerRep: avgActivitiesPerRep,
+        criticalAlerts: managerFilteredDeals.map(deal => ({
           deal_id: deal.deal_id,
           customer_name: deal.customers?.customer_name || 'Unknown',
           sales_rep_name: deal.sales_reps?.sales_rep_name || 'Unknown',
           deal_stage: deal.deal_stage,
+
           revenueAtRisk: Number(deal.max_deal_potential) || 0
         })),
         availableManagers: managersData || []
       }
     };
 
-    console.log('Dashboard overview response:', response);
+
+// Removed duplicate totalRevenue declaration
 
     return new Response(JSON.stringify(response), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

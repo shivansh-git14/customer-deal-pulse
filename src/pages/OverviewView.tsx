@@ -1,4 +1,5 @@
 import { OverviewMetrics } from '@/components/dashboard/OverviewMetrics';
+import { Insights } from '@/components/dashboard/Insights';
 import { CriticalAlerts } from '@/components/dashboard/CriticalAlerts';
 import { useDashboard } from '@/contexts/DashboardContext';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -20,18 +21,28 @@ const OverviewView = () => {
     );
   }
 
-  return (
-    <div className="space-y-8">
-      {loading || !data ? (
-        <Skeleton className="h-32 w-full rounded-xl" />
-      ) : (
-        <OverviewMetrics data={data} filters={filters} />
-      )}
-      {loading || !data ? (
-        <Skeleton className="h-32 w-full rounded-xl" />
-      ) : (
-        <CriticalAlerts alerts={data.criticalAlerts} />
-      )}
+    return (
+    <div className="flex gap-8">
+      {/* Main Content */}
+      <div className="flex-1 space-y-8">
+        {loading || !data ? (
+          <Skeleton className="h-32 w-full rounded-xl" />
+        ) : (
+          <div className="space-y-6">
+            <OverviewMetrics data={data} filters={filters} />
+            <Insights />
+          </div>
+        )}
+      </div>
+
+      {/* Alerts Sidebar */}
+      <aside className="w-80 space-y-8">
+        {loading || !data ? (
+          <Skeleton className="h-32 w-full rounded-xl" />
+        ) : (
+          <CriticalAlerts alerts={data.criticalAlerts} />
+        )}
+      </aside>
     </div>
   );
 };
