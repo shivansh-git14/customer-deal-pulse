@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { RepInsightsPanel } from './RepInsightsPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -26,6 +27,8 @@ interface TeamMetrics {
 }
 
 export const TeamOverview = ({ filters }: TeamOverviewProps) => {
+  // Accordion-style expansion: only one row at a time
+  const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
   const [teamData, setTeamData] = useState<TeamMetrics[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -167,66 +170,73 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                 </TableRow>
               ) : (
                 teamData.map((team, index) => (
-                <TableRow key={index} className="hover:bg-muted/30 transition-colors">
-                  <TableCell>
-                    <div className="flex items-center gap-3">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
-                        <Users className="h-4 w-4 text-primary" />
-                      </div>
-                      <div>
-                        <div className="font-medium text-foreground">{team.team_name}</div>
-                        <div className="text-sm text-muted-foreground">{team.team_size} reps</div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-semibold text-foreground">{formatCurrency(team.revenue)}</div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-1">
-                      <span className={`font-medium ${
-                        team.target_percentage >= 100 ? 'text-success' : 
-                        team.target_percentage >= 90 ? 'text-warning' : 'text-danger'
-                      }`}>
-                        {team.target_percentage}%
-                      </span>
-                      {getTrendIcon(getTargetTrend(team.target_percentage))}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-foreground">{team.conversion_rate}%</span>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-foreground">{team.efficiency} deals/rep</span>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getMomentumBadge(team.momentum)}>
-                      {team.momentum}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant="outline" className={getRiskBadge(team.risk_level)}>
-                      {team.risk_level}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <div className={`h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold ${getPerformanceColor(team.performance_score)}`}>
-                      {team.performance_score}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <MessageSquare className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                      </Button>
-                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                        <Eye className="h-4 w-4 text-muted-foreground hover:text-primary" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))
-            )}
+                  <React.Fragment key={team.team_name}>
+                    <TableRow
+                      className={`hover:bg-muted/30 transition-colors cursor-pointer ${expandedIndex === index ? 'bg-muted/10' : ''}`}
+                      onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
+                      aria-expanded={expandedIndex === index}
+                      tabIndex={0}
+                      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') setExpandedIndex(expandedIndex === index ? null : index); }}
+                    >
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center">
+                            <Users className="h-4 w-4 text-primary" />
+                          </div>
+                          <div>
+                            <div className="font-medium text-foreground flex items-center gap-1">
+                              {team.team_name}
+                              <span className={`ml-2 transition-transform ${expandedIndex === index ? 'rotate-90' : 'rotate-0'}`}>▶</span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">{team.team_size} reps</div>
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-semibold text-foreground">{formatCurrency(team.revenue)}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          {getTrendIcon(getTargetTrend(team.target_percentage))}
+                          {team.target_percentage.toFixed(1)}%
+                        </div>
+                      </TableCell>
+                      <TableCell>{team.conversion_rate.toFixed(1)}%</TableCell>
+                      <TableCell>{team.efficiency.toFixed(2)}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={getMomentumBadge(team.momentum)}>
+                          {team.momentum}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={getRiskBadge(team.risk_level)}>
+                          {team.risk_level}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${getPerformanceColor(team.performance_score)}`}>
+                          {team.performance_score}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <MessageSquare className="h-4 w-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                    {expandedIndex === index && (
+                      <TableRow key={`${team.team_name}-details`}>
+                        <TableCell colSpan={9}>
+                          <RepInsightsPanel />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </React.Fragment>
+                ))
+              )}
             </TableBody>
           </Table>
         </div>

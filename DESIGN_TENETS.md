@@ -198,7 +198,7 @@ This palette is chosen for its balance, subtlety, and connection to Japanese aes
 - **Input Fields**
   - Height: `2.5rem` (40px)
   - Padding: `0.5rem 0.75rem`
-  - Border: `1px solid #d1d5db` (gray-300)
+  - Border: `1px solidhsl(215, 34.70%, 9.60%)` (gray-300)
   - Border Radius: `0.375rem` (6px)
   - Focus: `2px solid #93c5fd` (light blue-300)
   - Placeholder: `#9ca3af` (gray-400)

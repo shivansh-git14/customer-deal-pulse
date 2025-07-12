@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import OverviewView from "./pages/OverviewView";
 import TeamView from "./pages/TeamView";
+import { LeaderboardView } from "./pages/LeaderboardView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -21,6 +22,7 @@ const App = () => (
             <Route index element={<Navigate to="/overview" replace />} />
             <Route path="overview" element={<OverviewView />} />
             <Route path="team" element={<TeamView />} />
+            <Route path="leaderboard" element={<LeaderboardView />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
