@@ -4,9 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Users, MessageSquare, Eye, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { Users, TrendingUp, TrendingDown, Minus, MessageSquare, Eye } from 'lucide-react';
 import { DashboardFilters } from '@/hooks/useDashboardData';
-import { supabase } from '@/integrations/supabase/client';
+import { useApi } from '@/hooks/useApi';
+import { getTeamMetrics } from '@/lib/api';
+import { formatCurrency, getTargetTrend, getMomentumBadge, getRiskBadge, getPerformanceColor } from '@/lib/utils';
 
 interface TeamOverviewProps {
   filters: DashboardFilters;
@@ -26,96 +28,26 @@ interface TeamMetrics {
   avg_deal_size: number;
 }
 
+const TrendIcon = ({ trend }: { trend: string }) => {
+  switch (trend) {
+    case 'up':
+      return <TrendingUp className="h-3 w-3 text-success" />;
+    case 'down':
+      return <TrendingDown className="h-3 w-3 text-danger" />;
+    default:
+      return <Minus className="h-3 w-3 text-muted-foreground" />;
+  }
+};
+
 export const TeamOverview = ({ filters }: TeamOverviewProps) => {
-  // Accordion-style expansion: only one row at a time
   const [expandedIndex, setExpandedIndex] = useState<number | null>(null);
-  const [teamData, setTeamData] = useState<TeamMetrics[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
+  const { data: teamData, isLoading, execute: fetchTeamMetrics } = useApi<TeamMetrics[]>(() => getTeamMetrics(filters), false);
 
   useEffect(() => {
-    const fetchTeamMetrics = async () => {
-      setIsLoading(true);
-      try {
-        console.log('Fetching team metrics with filters:', filters);
-        
-        const { data, error } = await supabase.functions.invoke('team-metrics', {
-          body: {
-            startDate: filters.startDate,
-            endDate: filters.endDate,
-            salesManagerId: filters.salesManagerId
-          }
-        });
-
-        if (error) {
-          console.error('Error fetching team metrics:', error);
-          return;
-        }
-
-        console.log('Team metrics response:', data);
-        
-        if (data.success) {
-          setTeamData(data.data);
-        }
-      } catch (error) {
-        console.error('Error calling team metrics function:', error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchTeamMetrics();
-  }, [filters]);
-
-  const formatCurrency = (amount: number) => {
-    if (amount >= 1000000) {
-      return `$${(amount / 1000000).toFixed(1)}M`;
-    } else if (amount >= 1000) {
-      return `$${(amount / 1000).toFixed(0)}K`;
+    if (filters) {
+      fetchTeamMetrics(filters);
     }
-    return `$${amount.toLocaleString()}`;
-  };
-
-  const getTargetTrend = (percentage: number) => {
-    if (percentage >= 100) return 'up';
-    if (percentage >= 90) return 'neutral';
-    return 'down';
-  };
-
-  const getTrendIcon = (trend: string) => {
-    switch (trend) {
-      case 'up':
-        return <TrendingUp className="h-3 w-3 text-success" />;
-      case 'down':
-        return <TrendingDown className="h-3 w-3 text-danger" />;
-      default:
-        return <Minus className="h-3 w-3 text-muted-foreground" />;
-    }
-  };
-
-  const getMomentumBadge = (momentum: string) => {
-    const variants = {
-      'Accelerating': 'bg-success/10 text-success border-success/20',
-      'Improving': 'bg-info/10 text-info border-info/20',
-      'Stable': 'bg-muted text-muted-foreground',
-      'Declining': 'bg-danger/10 text-danger border-danger/20'
-    };
-    return variants[momentum as keyof typeof variants] || variants.Stable;
-  };
-
-  const getRiskBadge = (risk: string) => {
-    const variants = {
-      'Low Risk': 'bg-success/10 text-success border-success/20',
-      'Medium Risk': 'bg-warning/10 text-warning border-warning/20',
-      'High Risk': 'bg-danger/10 text-danger border-danger/20'
-    };
-    return variants[risk as keyof typeof variants] || variants['Low Risk'];
-  };
-
-  const getPerformanceColor = (score: number) => {
-    if (score >= 85) return 'bg-success text-success-foreground';
-    if (score >= 70) return 'bg-warning text-warning-foreground';
-    return 'bg-danger text-danger-foreground';
-  };
+  }, [filters, fetchTeamMetrics]);
 
   if (isLoading) {
     return (
@@ -162,14 +94,14 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {teamData.length === 0 ? (
+              {teamData && teamData.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
                     No team data available for the selected filters
                   </TableCell>
                 </TableRow>
               ) : (
-                teamData.map((team, index) => (
+                teamData && teamData.map((team, index) => (
                   <React.Fragment key={team.team_name}>
                     <TableRow
                       className={`hover:bg-muted/30 transition-colors cursor-pointer ${expandedIndex === index ? 'bg-muted/10' : ''}`}
@@ -197,40 +129,40 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1">
-                          {getTrendIcon(getTargetTrend(team.target_percentage))}
-                          {team.target_percentage.toFixed(1)}%
+                          <TrendIcon trend={getTargetTrend(team.target_percentage)} />
+                          <span>{team.target_percentage.toFixed(1)}%</span>
                         </div>
                       </TableCell>
                       <TableCell>{team.conversion_rate.toFixed(1)}%</TableCell>
                       <TableCell>{team.efficiency.toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getMomentumBadge(team.momentum)}>
-                          {team.momentum}
-                        </Badge>
+                        <Badge variant="outline" className={getMomentumBadge(team.momentum)}>{team.momentum}</Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getRiskBadge(team.risk_level)}>
-                          {team.risk_level}
-                        </Badge>
+                        <Badge variant="outline" className={getRiskBadge(team.risk_level)}>{team.risk_level}</Badge>
                       </TableCell>
                       <TableCell>
-                        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${getPerformanceColor(team.performance_score)}`}>
+                        <div className={`px-2 py-1 rounded-md text-xs font-medium text-center ${getPerformanceColor(team.performance_score)}`}>
                           {team.performance_score}
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <MessageSquare className="h-4 w-4" />
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                          <Eye className="h-4 w-4" />
-                        </Button>
+                        <div className="flex items-center gap-2">
+                          <Button variant="outline" size="sm" className="h-8">
+                            <MessageSquare className="h-3.5 w-3.5 mr-1.5" />
+                            Nudge
+                          </Button>
+                          <Button variant="outline" size="sm" className="h-8">
+                            <Eye className="h-3.5 w-3.5 mr-1.5" />
+                            View
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                     {expandedIndex === index && (
-                      <TableRow key={`${team.team_name}-details`}>
+                      <TableRow className="bg-muted/10 hover:bg-muted/20">
                         <TableCell colSpan={9}>
-                          <RepInsightsPanel />
+                          <RepInsightsPanel teamName={team.team_name} filters={filters} />
                         </TableCell>
                       </TableRow>
                     )}
