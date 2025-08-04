@@ -230,7 +230,7 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                     {expandedIndex === index && (
                       <TableRow key={`${team.team_name}-details`}>
                         <TableCell colSpan={9}>
-                          <RepInsightsPanel />
+                          <RepInsightsPanel teamName={team.team_name} filters={filters} />
                         </TableCell>
                       </TableRow>
                     )}
