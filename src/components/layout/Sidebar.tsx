@@ -57,6 +57,18 @@ export function Sidebar() {
                 >
                   Leaderboard
                 </NavLink>
+                <NavLink
+                  to="/new-deals"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-md font-medium transition-colors ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-sidebar-accent"
+                    }`
+                  }
+                >
+                  New Deals
+                </NavLink>
               </div>
             </AccordionContent>
           </AccordionItem>
