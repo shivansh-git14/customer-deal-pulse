@@ -20,42 +20,139 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
-    );
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+    )
 
-    // Parse request body for filters (if needed)
-    const { filters } = req.method === 'POST' ? await req.json() : {};
+    // Parse request body for filters
+    const { startDate, endDate, salesManagerId } = req.method === 'POST' ? await req.json() : {};
+
+    console.log('🔍 Debug: Received filters:', { startDate, endDate, salesManagerId });
 
     // 1. Lead Response Time calculation
-    const { data: leadResponseData } = await supabase
-      .from('events')
-      .select('deal_id, event_date, event_type')
-      .in('event_type', ['prospecting', 'qualified'])
-      .order('event_date');
+    // Step 1: Get prospecting deals with filters applied
+    let prospectingQuery = supabase
+      .from('deal_historical')
+      .select('deal_id, activity_date, sales_rep_id')
+      .eq('deal_stage', 'prospecting');
 
-    const responseTimeByDeal = leadResponseData?.reduce((acc: any, event: any) => {
-      if (!acc[event.deal_id]) acc[event.deal_id] = {};
-      acc[event.deal_id][event.event_type] = new Date(event.event_date);
-      return acc;
-    }, {});
+    // Apply date filters to prospecting stage
+    if (startDate) {
+      prospectingQuery = prospectingQuery.gte('activity_date::date', startDate);
+      console.log('📅 Debug: Start date filter:', startDate);
+    }
+    if (endDate) {
+      prospectingQuery = prospectingQuery.lte('activity_date::date', endDate);
+      console.log('📅 Debug: End date filter:', endDate);
+    }
 
-    const responseTimes = Object.values(responseTimeByDeal || {})
-      .filter((deal: any) => deal.prospecting && deal.qualified)
-      .map((deal: any) => (deal.qualified - deal.prospecting) / (1000 * 60 * 60 * 24));
+    // Apply manager filter if needed
+    if (salesManagerId) {
+      // Get sales reps under this manager first
+      const { data: managedReps } = await supabase
+        .from('sales_reps')
+        .select('sales_rep_id')
+        .eq('sales_rep_manager_id', salesManagerId);
+      
+      const repIds = (managedReps || []).map(rep => rep.sales_rep_id);
+      if (repIds.length > 0) {
+        prospectingQuery = prospectingQuery.in('sales_rep_id', repIds);
+        console.log('👥 Debug: Manager filter applied, rep IDs:', repIds.slice(0, 5));
+      } else {
+        console.log('⚠️  Debug: No reps found for manager:', salesManagerId);
+      }
+    }
+
+    const { data: prospectingDeals, error: prospectingError } = await prospectingQuery;
+
+    if (prospectingError) {
+      console.error('Error fetching prospecting deals:', prospectingError);
+      throw prospectingError;
+    }
+
+    console.log('📈 Debug: Prospecting deals found:', prospectingDeals?.length || 0);
+    console.log('📋 Debug: Sample prospecting deals:', prospectingDeals?.slice(0, 3));
+
+    let avgResponseTime = 0;
+
+    if ((prospectingDeals || []).length > 0) {
+      // Step 2: Get qualified deals for matching deal_ids
+      const prospectingDealIds = (prospectingDeals || []).map(deal => deal.deal_id);
+      
+      const { data: qualifiedDeals, error: qualifiedError } = await supabase
+        .from('deal_historical')
+        .select('deal_id, activity_date, sales_rep_id')
+        .eq('deal_stage', 'qualified')
+        .in('deal_id', prospectingDealIds);
+
+      if (qualifiedError) {
+        console.error('Error fetching qualified deals:', qualifiedError);
+        throw qualifiedError;
+      }
+
+      console.log('✅ Debug: Qualified deals found:', qualifiedDeals?.length || 0);
+      console.log('📊 Debug: Sample qualified deals:', qualifiedDeals?.slice(0, 3));
+
+      // Step 3: Join and calculate response times (matching your SQL logic)
+      const prospectingMap = (prospectingDeals || []).reduce((acc: any, deal: any) => {
+        const key = deal.deal_id; // Join only on deal_id as per your updated SQL
+        acc[key] = {
+          activity_date: deal.activity_date,
+          sales_rep_id: deal.sales_rep_id
+        };
+        return acc;
+      }, {});
+
+      const qualifiedMap = (qualifiedDeals || []).reduce((acc: any, deal: any) => {
+        const key = deal.deal_id;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push({
+          activity_date: deal.activity_date,
+          sales_rep_id: deal.sales_rep_id
+        });
+        return acc;
+      }, {});
+
+      // Calculate response times for deals that have both stages
+      const responseTimes: number[] = [];
+      
+      Object.keys(prospectingMap).forEach(dealId => {
+        const prospectingDeal = prospectingMap[dealId];
+        const qualifiedDeals = qualifiedMap[dealId] || [];
+        
+        // Find qualified deals for this deal_id
+        qualifiedDeals.forEach((qualifiedDeal: any) => {
+          const prospectingDate = new Date(prospectingDeal.activity_date);
+          const qualifiedDate = new Date(qualifiedDeal.activity_date);
+          
+          // Calculate days difference
+          const timeDiff = (qualifiedDate.getTime() - prospectingDate.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (timeDiff >= 0) {
+            responseTimes.push(timeDiff);
+            console.log(`⏱️  Debug: Deal ${dealId} - ${timeDiff.toFixed(1)} days`);
+          }
+        });
+      });
+
+      console.log('📏 Debug: Valid response times count:', responseTimes.length);
+      console.log('🎯 Debug: Sample response times:', responseTimes.slice(0, 5));
+
+      avgResponseTime = responseTimes.length > 0 
+        ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length 
+        : 0;
+    }
     
-    const avgResponseTime = responseTimes.length > 0 
-      ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length 
-      : 0;
+    console.log('🎯 Debug: Final avgResponseTime:', avgResponseTime);
 
     // 2. Conversion Rate calculation
     const { data: conversionData } = await supabase
       .from('deal_historical')
       .select('deal_id, stage');
 
-    const prospectingDeals = conversionData?.filter(d => d.stage === 'prospecting').length || 0;
+    const prospectingCount = conversionData?.filter(d => d.stage === 'prospecting').length || 0;
     const closedWonDeals = conversionData?.filter(d => d.stage === 'closed_won').length || 0;
-    const conversionRate = prospectingDeals > 0 ? (closedWonDeals / prospectingDeals) * 100 : 0;
+    const conversionRate = prospectingCount > 0 ? (closedWonDeals / prospectingCount) * 100 : 0;
 
     // 3. Deal Cycle Length calculation
     const { data: cycleData } = await supabase

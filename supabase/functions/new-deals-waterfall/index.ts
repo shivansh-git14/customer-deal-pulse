@@ -13,15 +13,15 @@ serve(async (req) => {
 
   try {
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL')!,
-      Deno.env.get('SUPABASE_ANON_KEY')!
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
     // Parse request body for filters (if needed)
     const { filters } = req.method === 'POST' ? await req.json() : {};
 
     const { data: stageData } = await supabase
-      .from('deal_current_snapshot')
+      .from('deals_current')
       .select('stage')
       .not('stage', 'is', null);
 

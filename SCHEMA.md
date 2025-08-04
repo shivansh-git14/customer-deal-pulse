@@ -2,7 +2,7 @@
 -- Table order and constraints may not be valid for execution.
 
 CREATE TABLE public.contacts (
-  contact_id integer NOT NULL,
+  contact_id integer NOT NULL UNIQUE,
   contact_name text NOT NULL,
   customer_id integer NOT NULL,
   contact_score numeric,
@@ -15,7 +15,7 @@ CREATE TABLE public.contacts (
   CONSTRAINT contacts_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
 );
 CREATE TABLE public.customer_stage_historical (
-  historical_id integer NOT NULL,
+  historical_id integer NOT NULL UNIQUE,
   customer_id integer NOT NULL,
   activity_date date NOT NULL,
   activity_type text NOT NULL,
@@ -25,34 +25,34 @@ CREATE TABLE public.customer_stage_historical (
   CONSTRAINT customer_stage_historical_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
 );
 CREATE TABLE public.customers (
-  customer_id integer NOT NULL,
+  customer_id integer NOT NULL UNIQUE,
   customer_name text NOT NULL,
-  assignment_dt date NOT NULL,
   customer_lifecycle_stage text NOT NULL,
   customer_industry text NOT NULL,
   decision_maker text NOT NULL,
   first_participation_date date,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   updated_at timestamp with time zone NOT NULL DEFAULT now(),
+  assignment_dt date NOT NULL,
   CONSTRAINT customers_pkey PRIMARY KEY (customer_id)
 );
 CREATE TABLE public.deal_historical (
-  historical_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
   deal_id integer,
-  activity_date timestamp with time zone,
-  activity_type text,
   deal_stage text,
-  deal_value numeric,
-  customer_id integer,
   sales_rep_id integer,
+  activity_date timestamp with time zone,
+  deal_value numeric,
   created_at timestamp with time zone,
+  historical_id uuid NOT NULL DEFAULT gen_random_uuid() UNIQUE,
+  activity_type text,
+  customer_id integer,
   CONSTRAINT deal_historical_pkey PRIMARY KEY (historical_id),
   CONSTRAINT deal_historical_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
   CONSTRAINT deal_historical_deal_id_fkey FOREIGN KEY (deal_id) REFERENCES public.deals_current(deal_id),
   CONSTRAINT deal_historical_sales_rep_id_fkey FOREIGN KEY (sales_rep_id) REFERENCES public.sales_reps(sales_rep_id)
 );
 CREATE TABLE public.deals_current (
-  deal_id integer NOT NULL,
+  deal_id integer NOT NULL UNIQUE,
   deal_stage text NOT NULL,
   customer_id integer NOT NULL,
   sales_rep_id integer NOT NULL,
@@ -66,7 +66,7 @@ CREATE TABLE public.deals_current (
   CONSTRAINT deals_current_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
 );
 CREATE TABLE public.events (
-  event_id integer NOT NULL,
+  event_id integer NOT NULL UNIQUE,
   event_timestamp timestamp with time zone NOT NULL,
   event_type text NOT NULL,
   event_summary text,
@@ -76,12 +76,12 @@ CREATE TABLE public.events (
   sales_rep_notes text,
   created_at timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT events_pkey PRIMARY KEY (event_id),
-  CONSTRAINT events_sales_rep_id_fkey FOREIGN KEY (sales_rep_id) REFERENCES public.sales_reps(sales_rep_id),
+  CONSTRAINT events_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id),
   CONSTRAINT events_contact_id_fkey FOREIGN KEY (contact_id) REFERENCES public.contacts(contact_id),
-  CONSTRAINT events_customer_id_fkey FOREIGN KEY (customer_id) REFERENCES public.customers(customer_id)
+  CONSTRAINT events_sales_rep_id_fkey FOREIGN KEY (sales_rep_id) REFERENCES public.sales_reps(sales_rep_id)
 );
 CREATE TABLE public.revenue (
-  revenue_id integer NOT NULL,
+  revenue_id integer NOT NULL UNIQUE,
   participation_dt date NOT NULL,
   customer_id integer NOT NULL,
   sales_rep integer NOT NULL,
@@ -105,7 +105,7 @@ CREATE TABLE public.sales_reps (
   CONSTRAINT sales_reps_sales_rep_manager_id_fkey FOREIGN KEY (sales_rep_manager_id) REFERENCES public.sales_reps(sales_rep_id)
 );
 CREATE TABLE public.targets (
-  target_id integer NOT NULL,
+  target_id integer NOT NULL UNIQUE,
   sales_rep_id integer NOT NULL,
   target_month date NOT NULL,
   target_value numeric NOT NULL,
