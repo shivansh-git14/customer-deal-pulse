@@ -1,8 +1,18 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
 import { useWaterfallData } from '@/hooks/useNewDealsData';
 
 export function NewDealsWaterfall({ filters }: { filters: any }) {
   const { waterfallData, loading, error } = useWaterfallData(filters);
+
+  // Format currency for labels
+  const formatCurrency = (value: number) => {
+    if (value >= 1000000) {
+      return `$${(value / 1000000).toFixed(1)}M`;
+    } else if (value >= 1000) {
+      return `$${(value / 1000).toFixed(0)}K`;
+    }
+    return `$${value.toLocaleString()}`;
+  };
 
   return (
     <div className="bg-white p-6 rounded-lg shadow border">
@@ -24,7 +34,14 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
             <XAxis dataKey="stage" />
             <YAxis />
             <Tooltip />
-            <Bar dataKey="count" fill="#8884d8" />
+            <Bar dataKey="count" fill="#8884d8">
+              <LabelList 
+                dataKey="value" 
+                position="top" 
+                formatter={formatCurrency}
+                style={{ fontSize: '12px', fontWeight: 'bold' }}
+              />
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       )}

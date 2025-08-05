@@ -1,303 +1,202 @@
 
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders })
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
     const supabase = createClient(
       Deno.env.get('SUPABASE_URL') ?? '',
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    );
 
-    const { startDate, endDate, salesManagerId } = await req.json()
+    // Parse request body for filters - standardized pattern
+    const { startDate, endDate, salesManagerId } = await req.json();
 
-    console.log('Fetching team metrics with filters:', { startDate, endDate, salesManagerId })
+    console.log('Fetching team metrics with filters:', { startDate, endDate, salesManagerId });
 
-    // Get all sales reps to understand the structure
-    const { data: allReps, error: allRepsError } = await supabase
+    // Get managers (reps with no manager_id)
+    let managersQuery = supabase
       .from('sales_reps')
       .select('sales_rep_id, sales_rep_name, sales_rep_manager_id, is_active')
       .eq('is_active', true)
+      .is('sales_rep_manager_id', null);
 
-    if (allRepsError) {
-      console.error('Error fetching all sales reps:', allRepsError)
-      throw allRepsError
+    // If filtering by specific manager, get only that manager
+    if (salesManagerId) {
+      managersQuery = managersQuery.eq('sales_rep_id', salesManagerId);
     }
 
-    console.log('All active sales reps:', allReps)
+    const { data: managers, error: managersError } = await managersQuery;
 
-    // Get managers (those with NULL manager_id)
-    const managers = allReps?.filter(rep => rep.sales_rep_manager_id === null) || []
-    console.log('Found managers:', managers)
-
-    // If no managers found, let's try a different approach - create teams based on all reps
-    if (managers.length === 0) {
-      console.log('No managers found, creating individual rep teams')
-      const teamMetrics = []
-
-      for (const rep of allReps || []) {
-        // Skip if filtering by specific manager and this rep doesn't match
-        if (salesManagerId && rep.sales_rep_id !== salesManagerId) {
-          continue
-        }
-
-        // Get rep revenue
-        let revenueQuery = supabase
-          .from('revenue')
-          .select('revenue')
-          .eq('sales_rep', rep.sales_rep_id)
-
-        if (startDate) {
-          revenueQuery = revenueQuery.gte('participation_dt', startDate)
-        }
-        if (endDate) {
-          revenueQuery = revenueQuery.lte('participation_dt', endDate)
-        }
-
-        const { data: revenueData, error: revenueError } = await revenueQuery
-
-        if (revenueError) {
-          console.error('Error fetching revenue data for rep:', rep.sales_rep_id, revenueError)
-          continue
-        }
-
-        const totalRevenue = revenueData?.reduce((sum, record) => sum + Number(record.revenue), 0) || 0
-
-        // Get rep target
-        const { data: targetData, error: targetError } = await supabase
-          .from('targets')
-          .select('target_value')
-          .eq('sales_rep_id', rep.sales_rep_id)
-
-        if (targetError) {
-          console.error('Error fetching target data for rep:', rep.sales_rep_id, targetError)
-          continue
-        }
-
-        const totalTarget = targetData?.reduce((sum, record) => sum + Number(record.target_value), 0) || 1
-        const targetPercentage = totalTarget > 0 ? (totalRevenue / totalTarget) * 100 : 0
-
-        // Get rep deals
-        const { data: dealsData, error: dealsError } = await supabase
-          .from('deals_current')
-          .select('deal_id, deal_stage, max_deal_potential, is_high_risk')
-          .eq('sales_rep_id', rep.sales_rep_id)
-
-        if (dealsError) {
-          console.error('Error fetching deals data for rep:', rep.sales_rep_id, dealsError)
-          continue
-        }
-
-        const totalDeals = dealsData?.length || 0
-        const closedWonDeals = dealsData?.filter(deal => deal.deal_stage === 'closed_won').length || 0
-        const highRiskDeals = dealsData?.filter(deal => deal.is_high_risk === 'Yes').length || 0
-        const conversionRate = totalDeals > 0 ? (closedWonDeals / totalDeals) * 100 : 0
-
-        // Determine momentum
-        let momentum = 'Stable'
-        if (targetPercentage >= 110) momentum = 'Accelerating'
-        else if (targetPercentage >= 90) momentum = 'Improving'
-        else if (targetPercentage < 70) momentum = 'Declining'
-
-        // Determine risk level
-        let riskLevel = 'Low Risk'
-        const riskRatio = totalDeals > 0 ? highRiskDeals / totalDeals : 0
-        if (riskRatio > 0.4) riskLevel = 'High Risk'
-        else if (riskRatio > 0.2) riskLevel = 'Medium Risk'
-
-        // Calculate performance score
-        const performanceScore = Math.round(
-          (targetPercentage * 0.4) + 
-          (conversionRate * 2) + 
-          ((100 - riskRatio * 100) * 0.3)
-        )
-
-        // Calculate average deal size
-        const dealValues = dealsData?.map(deal => Number(deal.max_deal_potential) || 0).filter(val => val > 0) || []
-        const avgDealSize = dealValues.length > 0 ? dealValues.reduce((sum, val) => sum + val, 0) / dealValues.length : 0
-
-        teamMetrics.push({
-          team_name: rep.sales_rep_name,
-          team_size: 1,
-          revenue: totalRevenue,
-          target: totalTarget,
-          target_percentage: Math.round(targetPercentage * 100) / 100,
-          conversion_rate: Math.round(conversionRate * 100) / 100,
-          efficiency: totalDeals,
-          momentum,
-          risk_level: riskLevel,
-          performance_score: Math.min(100, Math.max(0, performanceScore)),
-          avg_deal_size: Math.round(avgDealSize)
-        })
-      }
-
-      console.log('Individual rep teams created:', teamMetrics.length)
-      
-      return new Response(
-        JSON.stringify({ 
-          success: true, 
-          data: teamMetrics 
-        }),
-        { 
-          headers: { 
-            ...corsHeaders, 
-            'Content-Type': 'application/json' 
-          } 
-        }
-      )
+    if (managersError) {
+      console.error('Error fetching managers:', managersError);
+      throw managersError;
     }
 
-    // Original manager-based logic
-    const teamMetrics = []
+    console.log('Found managers:', managers?.length || 0);
+
+    if (!managers || managers.length === 0) {
+      console.log('No managers found');
+      return new Response(JSON.stringify({ 
+        success: true, 
+        data: [] 
+      }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const teamMetrics = [];
 
     for (const manager of managers) {
-      // Skip if filtering by specific manager and this isn't the one
-      if (salesManagerId && manager.sales_rep_id !== salesManagerId) {
-        continue
+      console.log(`Processing manager: ${manager.sales_rep_name} (ID: ${manager.sales_rep_id})`);
+
+      // Get team members for this manager
+      const { data: teamMembers, error: teamError } = await supabase
+        .from('sales_reps')
+        .select('sales_rep_id, sales_rep_name')
+        .eq('sales_rep_manager_id', manager.sales_rep_id)
+        .eq('is_active', true);
+
+      if (teamError) {
+        console.error('Error fetching team members:', teamError);
+        continue;
       }
 
-      // Get team members (those with this manager_id plus the manager themselves)
-      const teamMembers = allReps?.filter(rep => 
-        rep.sales_rep_manager_id === manager.sales_rep_id || rep.sales_rep_id === manager.sales_rep_id
-      ) || []
+      // Include manager in the team
+      const allTeamMembers = [
+        { sales_rep_id: manager.sales_rep_id, sales_rep_name: manager.sales_rep_name },
+        ...(teamMembers || [])
+      ];
 
-      console.log(`Team members for ${manager.sales_rep_name}:`, teamMembers)
-
-      const teamMemberIds = teamMembers.map(member => member.sales_rep_id)
-      if (teamMemberIds.length === 0) continue
+      console.log(`Team members for ${manager.sales_rep_name}:`, allTeamMembers.length);
 
       // Get team revenue
+      const teamRepIds = allTeamMembers.map(rep => rep.sales_rep_id);
+      
       let revenueQuery = supabase
         .from('revenue')
         .select('revenue, sales_rep')
-        .in('sales_rep', teamMemberIds)
+        .in('sales_rep', teamRepIds);
 
       if (startDate) {
-        revenueQuery = revenueQuery.gte('participation_dt', startDate)
+        revenueQuery = revenueQuery.gte('participation_dt', startDate);
       }
       if (endDate) {
-        revenueQuery = revenueQuery.lte('participation_dt', endDate)
+        revenueQuery = revenueQuery.lte('participation_dt', endDate);
       }
 
-      const { data: revenueData, error: revenueError } = await revenueQuery
+      const { data: revenueData, error: revenueError } = await revenueQuery;
 
       if (revenueError) {
-        console.error('Error fetching revenue data:', revenueError)
-        continue
+        console.error('Error fetching revenue data:', revenueError);
+        continue;
       }
 
-      const totalRevenue = revenueData?.reduce((sum, record) => sum + Number(record.revenue), 0) || 0
+      const totalRevenue = revenueData?.reduce((sum, record) => sum + Number(record.revenue), 0) || 0;
 
-      // Get team targets
+      // Get team target (sum of all team member targets)
       const { data: targetData, error: targetError } = await supabase
         .from('targets')
         .select('target_value')
-        .in('sales_rep_id', teamMemberIds)
+        .in('sales_rep_id', teamRepIds);
 
       if (targetError) {
-        console.error('Error fetching target data:', targetError)
-        continue
+        console.error('Error fetching target data:', targetError);
+        continue;
       }
 
-      const totalTarget = targetData?.reduce((sum, record) => sum + Number(record.target_value), 0) || 1
-      const targetPercentage = totalTarget > 0 ? (totalRevenue / totalTarget) * 100 : 0
+      const totalTarget = targetData?.reduce((sum, record) => sum + Number(record.target_value), 0) || 1;
+      const targetPercentage = totalTarget > 0 ? (totalRevenue / totalTarget) * 100 : 0;
 
       // Get team deals
       const { data: dealsData, error: dealsError } = await supabase
         .from('deals_current')
-        .select('deal_id, deal_stage, max_deal_potential, is_high_risk, sales_rep_id')
-        .in('sales_rep_id', teamMemberIds)
+        .select('deal_id, deal_stage, max_deal_potential')
+        .in('sales_rep_id', teamRepIds);
 
       if (dealsError) {
-        console.error('Error fetching deals data:', dealsError)
-        continue
+        console.error('Error fetching deals data:', dealsError);
+        continue;
       }
 
-      const totalDeals = dealsData?.length || 0
-      const closedWonDeals = dealsData?.filter(deal => deal.deal_stage === 'closed_won').length || 0
-      const highRiskDeals = dealsData?.filter(deal => deal.is_high_risk === 'Yes').length || 0
-      const conversionRate = totalDeals > 0 ? (closedWonDeals / totalDeals) * 100 : 0
-      
-      // Calculate average deal potential
-      const dealValues = dealsData?.map(deal => Number(deal.max_deal_potential) || 0).filter(val => val > 0) || []
-      const avgDealSize = dealValues.length > 0 ? dealValues.reduce((sum, val) => sum + val, 0) / dealValues.length : 0
+      const totalDeals = dealsData?.length || 0;
+      const closedWonDeals = dealsData?.filter(deal => deal.deal_stage === 'closed_won').length || 0;
+      const conversionRate = totalDeals > 0 ? (closedWonDeals / totalDeals) * 100 : 0;
+      const avgDealSize = dealsData?.map(deal => Number(deal.max_deal_potential) || 0).filter(val => val > 0).reduce((sum, val) => sum + val, 0) / dealsData.length || 0;
 
-      // Determine momentum
-      let momentum = 'Stable'
-      if (targetPercentage >= 110) momentum = 'Accelerating'
-      else if (targetPercentage >= 90) momentum = 'Improving'
-      else if (targetPercentage < 70) momentum = 'Declining'
+      // Determine momentum based on target performance
+      let momentum = 'Stable';
+      if (targetPercentage >= 110) momentum = 'Accelerating';
+      else if (targetPercentage >= 90) momentum = 'Improving';
+      else if (targetPercentage < 70) momentum = 'Declining';
 
       // Determine risk level
-      let riskLevel = 'Low Risk'
-      const riskRatio = totalDeals > 0 ? highRiskDeals / totalDeals : 0
-      if (riskRatio > 0.4) riskLevel = 'High Risk'
-      else if (riskRatio > 0.2) riskLevel = 'Medium Risk'
+      let riskLevel = 'Medium';
+      if (targetPercentage >= 90) riskLevel = 'Low';
+      else if (targetPercentage < 60) riskLevel = 'High';
 
-      // Calculate performance score
-      const performanceScore = Math.round(
-        (targetPercentage * 0.4) + 
-        (conversionRate * 2) + 
-        ((100 - riskRatio * 100) * 0.3)
-      )
+      // Calculate performance score (0-100)
+      const performanceScore = Math.min(100, Math.max(0, 
+        (targetPercentage * 0.6) + (conversionRate * 0.4)
+      ));
 
-      // Efficiency metric (deals per team member)
-      const efficiency = teamMemberIds.length > 0 ? totalDeals / teamMemberIds.length : 0
+      type TeamMetric = {
+        team_name: string;
+        team_size: number;
+        revenue: number;
+        target: number;
+        target_percentage: number;
+        conversion_rate: number;
+        efficiency: number;
+        momentum: string;
+        risk_level: string;
+        performance_score: number;
+        avg_deal_size: number;
+      };
 
-      teamMetrics.push({
-        team_name: `${manager.sales_rep_name} Team`,
-        team_size: teamMemberIds.length,
+      const results: TeamMetric[] = [];
+results.push({
+        team_name: manager.sales_rep_name,
+        team_size: allTeamMembers.length,
         revenue: totalRevenue,
         target: totalTarget,
-        target_percentage: Math.round(targetPercentage * 100) / 100,
-        conversion_rate: Math.round(conversionRate * 100) / 100,
-        efficiency: Math.round(efficiency * 100) / 100,
+        target_percentage: targetPercentage,
+        conversion_rate: conversionRate,
+        efficiency: totalDeals > 0 ? totalRevenue / totalDeals : 0,
         momentum,
         risk_level: riskLevel,
-        performance_score: Math.min(100, Math.max(0, performanceScore)),
-        avg_deal_size: Math.round(avgDealSize)
-      })
+        performance_score: performanceScore,
+        avg_deal_size: avgDealSize
+      });
     }
 
-    console.log('Team metrics calculated:', teamMetrics)
+    console.log(`Processed ${teamMetrics.length} teams`);
 
-    return new Response(
-      JSON.stringify({ 
-        success: true, 
-        data: teamMetrics 
-      }),
-      { 
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    )
+    return new Response(JSON.stringify({ 
+      success: true, 
+      data: teamMetrics 
+    }), {
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
 
   } catch (error) {
-    console.error('Error in team-metrics function:', error)
-    return new Response(
-      JSON.stringify({ 
-        success: false, 
-        error: error.message 
-      }),
-      { 
-        status: 500,
-        headers: { 
-          ...corsHeaders, 
-          'Content-Type': 'application/json' 
-        } 
-      }
-    )
+    console.error('Error in team-metrics function:', error);
+    return new Response(JSON.stringify({ 
+      success: false, 
+      error: error.message 
+    }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
   }
-})
+});

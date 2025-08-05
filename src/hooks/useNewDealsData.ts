@@ -58,13 +58,13 @@ export function useWaterfallData(filters: any) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ filters }),
+        body: JSON.stringify({ ...filters }),
       });
 
       const result = await response.json();
       
       if (result.success) {
-        setWaterfallData(result.data);
+        setWaterfallData(result.data.waterfall || []);
       } else {
         throw new Error(result.error);
       }
