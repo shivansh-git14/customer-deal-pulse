@@ -150,22 +150,7 @@ serve(async (req) => {
         (targetPercentage * 0.6) + (conversionRate * 0.4)
       ));
 
-      type TeamMetric = {
-        team_name: string;
-        team_size: number;
-        revenue: number;
-        target: number;
-        target_percentage: number;
-        conversion_rate: number;
-        efficiency: number;
-        momentum: string;
-        risk_level: string;
-        performance_score: number;
-        avg_deal_size: number;
-      };
-
-      const results: TeamMetric[] = [];
-results.push({
+      teamMetrics.push({
         team_name: manager.sales_rep_name,
         team_size: allTeamMembers.length,
         revenue: totalRevenue,
