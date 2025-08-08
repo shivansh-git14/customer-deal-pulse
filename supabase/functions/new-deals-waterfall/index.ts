@@ -6,6 +6,13 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
+interface WaterfallStage {
+  stage: string;
+  dealCount: number;
+  totalValue: number;
+  conversionRate?: number;
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -17,29 +24,32 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Parse request body for filters - standardized pattern
+
+    // Parse request body for filters
     const { startDate, endDate, salesManagerId } = req.method === 'POST' ? await req.json() : {};
 
-    console.log('Fetching waterfall data with filters:', { startDate, endDate, salesManagerId });
+    console.log('🔍 Debug: Received filters:', { startDate, endDate, salesManagerId });
 
-    // Build query with filters
-    let stageQuery = supabase
-    .from('deal_historical')
-    .select('deal_id, activity_date, sales_rep_id, customer_id')
-    .eq('deal_stage', 'prospecting')
-    .not('deal_stage', 'is', null);
+    // Step 1: Get prospecting deals with filters applied
+    let prospectingQuery = supabase
+      .from('deal_historical')
+      .select('deal_id, activity_date, deal_value, sales_rep_id')
+      .eq('deal_stage', 'prospecting')
+        .not('deal_stage', 'is', null);
 
-    // Apply date filters if provided
+    // Apply date filters to prospecting stage
     if (startDate) {
-      stageQuery = stageQuery.gte('activity_date', startDate);
+      prospectingQuery = prospectingQuery.gte('activity_date::date', startDate);
+      console.log('📅 Debug: Start date filter:', startDate);
     }
     if (endDate) {
-      stageQuery = stageQuery.lte('activity_date', endDate);
+      prospectingQuery = prospectingQuery.lte('activity_date::date', endDate);
+      console.log('📅 Debug: End date filter:', endDate);
     }
 
-    // Apply manager filter if provided
+    // Apply manager filter if needed
     if (salesManagerId) {
-      // Get sales reps under this manager
+      // Get sales reps under this manager first
       const { data: managedReps } = await supabase
         .from('sales_reps')
         .select('sales_rep_id')
@@ -47,159 +57,129 @@ serve(async (req) => {
       
       const repIds = (managedReps || []).map(rep => rep.sales_rep_id);
       if (repIds.length > 0) {
-        stageQuery = stageQuery.in('sales_rep_id', repIds);
-        console.log('Manager filter applied to waterfall, rep IDs:', repIds.slice(0, 5));
+        prospectingQuery = prospectingQuery.in('sales_rep_id', repIds);
+        console.log('👥 Debug: Manager filter applied, rep IDs:', repIds.slice(0, 5));
       } else {
-        console.log('No reps found for manager:', salesManagerId);
+        console.log('⚠️  Debug: No reps found for manager:', salesManagerId);
       }
     }
 
-    const { data: prospectingDeals, error: stageError } = await stageQuery;
+    const { data: prospectingDeals, error: prospectingError } = await prospectingQuery;
 
-    if (stageError) {
-      console.error('Error fetching prospecting deals:', stageError);
-      throw stageError;
+    if (prospectingError) {
+      console.error('Error fetching prospecting deals:', prospectingError);
+      throw prospectingError;
     }
 
-    console.log('Prospecting deals found:', prospectingDeals?.length || 0);
+    console.log('📈 Debug: Prospecting deals found:', prospectingDeals?.length || 0);
 
-    // Step 2: For each prospecting deal, find their latest stage
-    const dealIds = prospectingDeals?.map(deal => deal.deal_id) || [];
-    
-    if (dealIds.length === 0) {
-      console.log('No prospecting deals found for the date range');
-      const stageCounts = {};
-      const stageValues = {};
-      
-      // Return empty waterfall data
-      const waterfallStages = [
-        'prospecting',
-        'qualified', 
-        'proposal',
-        'negotiation',
-        'closed_won',
-        'closed_lost'
+    // Handle duplicates in prospecting - keep latest activity_date for each deal_id
+    const prospectingDealsMap: { [key: number]: any } = {};
+    (prospectingDeals || []).forEach(deal => {
+      const key = deal.deal_id;
+      if (!prospectingDealsMap[key] || deal.activity_date > prospectingDealsMap[key].activity_date) {
+        prospectingDealsMap[key] = deal;
+      }
+    });
+    const filteredProspectingDeals = Object.values(prospectingDealsMap);
+
+    // Step 2: Get deal_ids from filtered prospecting deals
+    const filteredDealIds = filteredProspectingDeals.map(deal => deal.deal_id);
+
+    if (filteredDealIds.length === 0) {
+      console.log('📊 Debug: No deals found matching filters');
+      const emptyWaterfall: WaterfallStage[] = [
+        { stage: 'Prospecting', dealCount: 0, totalValue: 0 },
+        { stage: 'Qualified', dealCount: 0, totalValue: 0, conversionRate: 0 },
+        { stage: 'Negotiation', dealCount: 0, totalValue: 0, conversionRate: 0 },
+        { stage: 'Closed won', dealCount: 0, totalValue: 0, conversionRate: 0 }
       ];
-
-      const waterfallData = waterfallStages.map(stage => ({
-        stage,
-        count: 0,
-        value: 0
-      }));
-
-      return new Response(JSON.stringify({ 
-        success: true, 
-        data: {
-          waterfall: waterfallData,
-          stageCounts,
-          stageValues,
-          totalDeals: 0
-        }
-      }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+      return new Response(JSON.stringify({ success: true, data: emptyWaterfall }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Get latest stage for each deal
-    const { data: latestStages, error: latestError } = await supabase
-      .from('deal_historical')
-      .select('deal_id, deal_stage, deal_value, activity_date')
-      .in('deal_id', dealIds)
-      .order('activity_date', { ascending: false });
+    // Step 3: Get current stage for each filtered deal from deals_current table
+    const { data: currentDeals, error: currentDealsError } = await supabase
+      .from('deals_current')
+      .select('deal_id, deal_stage, max_deal_potential')
+      .in('deal_id', filteredDealIds);
 
-    if (latestError) {
-      console.error('Error fetching latest stages:', latestError);
-      throw latestError;
+    if (currentDealsError) {
+      console.error('Error fetching current deals:', currentDealsError);
+      throw currentDealsError;
     }
 
-    console.log('Latest stage records found:', latestStages?.length || 0);
+    console.log('🎯 Debug: Current deals found:', currentDeals?.length || 0);
 
-    // Build funnel: count deals that reached each stage
-    const stageCounts = {
-      prospecting: dealIds.length, // Start with all prospecting deals
-      qualified: 0,
-      proposal: 0,
-      negotiation: 0,
-      closed_won: 0,
-      closed_lost: 0
-    };
-    
-    const stageValues = {
-      prospecting: 0,
-      qualified: 0,
-      proposal: 0,
-      negotiation: 0,
-      closed_won: 0,
-      closed_lost: 0
+    // Step 4: Map each deal to its current stage index
+    const stages = ['prospecting', 'qualified', 'negotiation', 'won'];
+    const stageOrder: { [key: string]: number } = {
+      'prospecting': 0,
+      'qualified': 1, 
+      'negotiation': 2,
+      'won': 3
     };
 
-    // Track which deals reached each stage
-    const dealsReachedStage = {
-      prospecting: new Set(dealIds),
-      qualified: new Set(),
-      proposal: new Set(),
-      negotiation: new Set(),
-      closed_won: new Set(),
-      closed_lost: new Set()
-    };
+    const dealCurrentStages: { [dealId: number]: { currentStageIndex: number, dealValue: number } } = {};
 
-    // Process all stage records to track progression
-    latestStages?.forEach((record: any) => {
-      const stage = record.deal_stage === 'won' ? 'closed_won' : 
-                    record.deal_stage === 'lost' ? 'closed_lost' : record.deal_stage;
+    // Map each deal to its current stage and value from deals_current
+    (currentDeals || []).forEach(deal => {
+      const dealId = deal.deal_id;
+      const stageIndex = stageOrder[deal.deal_stage];
       
-      if (dealsReachedStage[stage]) {
-        dealsReachedStage[stage].add(record.deal_id);
+      if (stageIndex !== undefined) {
+        dealCurrentStages[dealId] = {
+          currentStageIndex: stageIndex,
+          dealValue: deal.max_deal_potential || 0
+        };
       }
     });
 
-    // Count deals that reached each stage
-    Object.keys(stageCounts).forEach(stage => {
-      if (stage !== 'prospecting') {
-        stageCounts[stage] = dealsReachedStage[stage].size;
-      }
-    });
+    console.log('📊 Debug: Deal current stages mapped for', Object.keys(dealCurrentStages).length, 'deals');
 
-    // Calculate values - get latest value for each deal
-    const dealLatestValues = {};
-    latestStages?.forEach((record: any) => {
-      if (!dealLatestValues[record.deal_id]) {
-        dealLatestValues[record.deal_id] = record.deal_value || 0;
+    // Step 5: Count deals for each stage (count deal in all stages up to its current stage)
+    const waterfallData: WaterfallStage[] = [];
+    
+    for (let stageIndex = 0; stageIndex < stages.length; stageIndex++) {
+      const stage = stages[stageIndex];
+      
+      // Count deals that reached at least this stage (currentStageIndex >= stageIndex)
+      const dealsInStage = Object.entries(dealCurrentStages)
+        .filter(([_, dealInfo]) => dealInfo.currentStageIndex >= stageIndex)
+        .map(([dealId, dealInfo]) => ({ dealId: parseInt(dealId), currentStageIndex: dealInfo.currentStageIndex, dealValue: dealInfo.dealValue }));
+      
+      const dealCount = dealsInStage.length;
+      const totalValue = dealsInStage.reduce((sum, deal) => sum + deal.dealValue, 0);
+      
+      let conversionRate: number | undefined = undefined;
+      if (stageIndex > 0) {
+        // Previous stage count
+        const prevStageCount = Object.values(dealCurrentStages)
+          .filter(dealInfo => dealInfo.currentStageIndex >= (stageIndex - 1)).length;
+        conversionRate = prevStageCount > 0 ? Math.round((dealCount / prevStageCount) * 100) : 0;
       }
-    });
 
-    // Sum values for each stage based on deals that reached that stage
-    Object.keys(stageValues).forEach(stage => {
-      dealsReachedStage[stage].forEach(dealId => {
-        stageValues[stage] += dealLatestValues[dealId] || 0;
+      // Map stage names for display
+      const getDisplayName = (stage: string) => {
+        switch(stage) {
+          case 'won': return 'Closed won';
+          default: return stage.charAt(0).toUpperCase() + stage.slice(1).replace('_', ' ');
+        }
+      };
+
+      waterfallData.push({
+        stage: getDisplayName(stage),
+        dealCount,
+        totalValue,
+        conversionRate
       });
-    });
 
-    console.log('Funnel stage counts:', stageCounts);
-    console.log('Deals that reached each stage:', {
-      prospecting: dealsReachedStage.prospecting.size,
-      qualified: dealsReachedStage.qualified.size,
-      proposal: dealsReachedStage.proposal.size,
-      negotiation: dealsReachedStage.negotiation.size,
-      closed_won: dealsReachedStage.closed_won.size,
-      closed_lost: dealsReachedStage.closed_lost.size
-    });
+      console.log(`📋 Debug: ${stage} - Count: ${dealCount}, Value: ${totalValue}, Conversion: ${conversionRate}%`);
+    }
 
-    // Standard waterfall stages (customize based on your needs)
-    const waterfallStages = [
-      'prospecting',
-      'qualified',
-      'proposal',
-      'negotiation',
-      'closed_won',
-      'closed_lost'
-    ];
+    console.log('✅ Debug: Waterfall calculation completed');
 
-    const waterfallData = waterfallStages.map(stage => ({
-      stage,
-      count: stageCounts[stage] || 0,
-      value: stageValues[stage] || 0
-    }));
 
     console.log('Waterfall data processed:', waterfallData);
 
@@ -215,11 +195,10 @@ serve(async (req) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
-    console.error('Error in new-deals-waterfall function:', error);
-    return new Response(JSON.stringify({ 
-      success: false, 
-      error: error.message 
-    }), {
+
+    console.error('❌ Error in waterfall function:', error);
+    return new Response(JSON.stringify({ success: false, error: error.message }), {
+
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

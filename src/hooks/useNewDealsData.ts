@@ -2,6 +2,13 @@ import { useState, useEffect } from 'react';
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL;
 
+interface WaterfallStage {
+  stage: string;
+  dealCount: number;
+  totalValue: number;
+  conversionRate?: number;
+}
+
 export function useNewDealsMetrics(filters: any) {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -43,7 +50,7 @@ export function useNewDealsMetrics(filters: any) {
 }
 
 export function useWaterfallData(filters: any) {
-  const [waterfallData, setWaterfallData] = useState([]);
+  const [waterfallData, setWaterfallData] = useState<WaterfallStage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -58,7 +65,9 @@ export function useWaterfallData(filters: any) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ ...filters }),
+
+        body: JSON.stringify({ startDate: filters.startDate, endDate: filters.endDate, salesManagerId: filters.salesManagerId }),
+
       });
 
       const result = await response.json();

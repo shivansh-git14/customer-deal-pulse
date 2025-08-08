@@ -1,10 +1,14 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LabelList } from 'recharts';
+
+import React from 'react';
 import { useWaterfallData } from '@/hooks/useNewDealsData';
 
 export function NewDealsWaterfall({ filters }: { filters: any }) {
   const { waterfallData, loading, error } = useWaterfallData(filters);
 
-  // Format currency for labels
+
+  // Debug logging
+  console.log('🔍 Waterfall Debug:', { filters, waterfallData, loading, error });
+
   const formatCurrency = (value: number) => {
     if (value >= 1000000) {
       return `$${(value / 1000000).toFixed(1)}M`;
@@ -14,36 +18,168 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
     return `$${value.toLocaleString()}`;
   };
 
+  // Color scheme based on design tenets - Japanese-inspired
+  const getStageColor = (index: number) => {
+    const colors = [
+      '#274a78', // Aizome (Japanese Indigo) - Prospecting
+      '#5654a2', // Kikyo (Bellflower Violet) - Qualified  
+      '#33a6b8', // Asagi (Pale Blue) - Negotiation
+      '#395b50', // Matsuba (Pine Needle Green) - Closed won
+    ];
+    return colors[index] || '#274a78';
+  };
+
+  // Calculate max deal count for scaling bar heights
+  const maxDeals = waterfallData ? Math.max(...waterfallData.map(stage => stage.dealCount)) : 0;
+  const getBarHeight = (dealCount: number) => {
+    const minHeight = 100; // Minimum height in pixels
+    const maxHeight = 300; // Maximum height in pixels
+    if (maxDeals === 0) return minHeight;
+    return Math.max(minHeight, (dealCount / maxDeals) * maxHeight);
+  };
+    
   return (
     <div className="bg-white p-6 rounded-lg shadow border">
-      <h3 className="text-lg font-semibold mb-4">Waterfall</h3>
-      <p className="text-sm text-gray-600 mb-4">Stage-to-Stage Conversion Rates Pipeline Velocity</p>
+      <div className="mb-6">
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">Deals Waterfall</h3>
+        <p className="text-sm text-gray-600">Stage-to-Stage Conversion Rates & Pipeline Velocity</p>
+      </div>
       
       {loading && (
-        <div className="h-[300px] flex items-center justify-center">
-          <div className="animate-pulse">Loading chart...</div>
+        <div className="h-[400px] flex items-center justify-center">
+          <div className="flex flex-col items-center">
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mb-4"></div>
+            <div className="text-gray-600">Loading waterfall data...</div>
+          </div>
         </div>
       )}
       
-      {error && <div className="text-red-600">Error: {error}</div>}
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="text-red-800 font-medium mb-1">Error Loading Data</div>
+          <div className="text-red-600 text-sm">{error}</div>
+        </div>
+      )}
       
-      {!loading && !error && (
-        <ResponsiveContainer width="100%" height={300}>
-          <BarChart data={waterfallData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" />
-            <XAxis dataKey="stage" />
-            <YAxis />
-            <Tooltip />
-            <Bar dataKey="count" fill="#8884d8">
-              <LabelList 
-                dataKey="value" 
-                position="top" 
-                formatter={formatCurrency}
-                style={{ fontSize: '12px', fontWeight: 'bold' }}
-              />
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+      {!loading && !error && waterfallData && waterfallData.length > 0 && (
+        <div className="space-y-8">
+          {/* True Waterfall Chart */}
+          <div className="relative">
+            {/* Chart Container */}
+            <div className="flex items-end justify-center gap-4 py-12" style={{ minHeight: '400px' }}>
+              {waterfallData.map((stage, index) => {
+                const barHeight = getBarHeight(stage.dealCount);
+                
+                return (
+                  <React.Fragment key={stage.stage}>
+                    <div className="flex flex-col items-center">
+                      {/* Total Deal Value - Above Bar */}
+                      <div className="mb-4 text-center">
+                        <div className="text-xs text-gray-500 font-medium mb-1">Total deal value</div>
+                        <div 
+                          className="text-lg font-bold"
+                          style={{ color: getStageColor(index) }}
+                        >
+                          {formatValue(stage.totalValue)}
+                        </div>
+                      </div>
+                      
+                      {/* Waterfall Bar - Aligned to baseline */}
+                      <div className="flex flex-col items-center">
+                        <div
+                          className="w-32 rounded-t border-2 border-b-0 flex flex-col justify-center relative transition-all duration-300 hover:shadow-lg"
+                          style={{ 
+                            height: `${barHeight}px`,
+                            borderColor: getStageColor(index),
+                            backgroundColor: `${getStageColor(index)}15` // 15% opacity
+                          }}
+                        >
+                          {/* Number of Deals - Center of Bar */}
+                          <div className="flex flex-col items-center justify-center">
+                            <div 
+                              className="text-2xl font-bold mb-1"
+                              style={{ color: getStageColor(index) }}
+                            >
+                              {stage.dealCount}
+                            </div>
+                            <div className="text-sm text-gray-600 font-medium">#deals</div>
+                          </div>
+                        </div>
+                        
+                        {/* Stage Label */}
+                        <div className="mt-4">
+                          <div 
+                            className="px-4 py-2 rounded text-white text-sm font-medium text-center"
+                            style={{ backgroundColor: getStageColor(index) }}
+                          >
+                            {stage.stage}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    {/* Conversion Rate - Between bars */}
+                    {index < waterfallData.length - 1 && (
+                      <div className="flex flex-col items-center justify-center px-4" style={{ minWidth: '80px' }}>
+                        <div className="text-center mb-2">
+                          <div 
+                            className="text-lg font-bold mb-1"
+                            style={{ color: getStageColor(index + 1) }}
+                          >
+                            {waterfallData[index + 1].conversionRate}%
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            Conversion
+                          </div>
+                        </div>
+                        {/* Arrow */}
+                        <div className="text-gray-400 text-2xl">→</div>
+                      </div>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+            
+            {/* Baseline */}
+            <div className="absolute bottom-20 left-0 right-0 h-px bg-gray-300" />
+          </div>
+          
+          {/* Summary Statistics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-6 border-t border-gray-200">
+            <div className="text-center">
+              <div className="text-2xl font-bold text-gray-900 mb-1">
+                {waterfallData[0]?.dealCount || 0}
+              </div>
+              <div className="text-sm text-gray-600">Total Deals Started</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-2xl font-bold text-green-600 mb-1">
+                {waterfallData[waterfallData.length - 1]?.dealCount || 0}
+              </div>
+              <div className="text-sm text-gray-600">Deals Won</div>
+            </div>
+            
+            <div className="text-center">
+              <div className="text-2xl font-bold text-blue-600 mb-1">
+                {waterfallData[waterfallData.length - 1]?.conversionRate || 0}%
+              </div>
+              <div className="text-sm text-gray-600">Overall Conversion</div>
+            </div>
+          </div>
+        </div>
+      )}
+      
+
+      {!loading && !error && (!waterfallData || waterfallData.length === 0) && (
+        <div className="h-[400px] flex items-center justify-center">
+          <div className="text-center text-gray-500">
+            <div className="text-6xl mb-4">📊</div>
+            <p className="text-lg font-medium mb-2">No waterfall data available</p>
+            <p className="text-sm">Try adjusting your date filters or check if deals exist in the database</p>
+          </div>
+        </div>
       )}
     </div>
   );
