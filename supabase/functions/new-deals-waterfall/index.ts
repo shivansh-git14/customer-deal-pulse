@@ -187,9 +187,7 @@ serve(async (req) => {
       success: true, 
       data: {
         waterfall: waterfallData,
-        stageCounts,
-        stageValues,
-        totalDeals: dealIds.length
+        totalDeals: filteredDealIds.length
       }
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

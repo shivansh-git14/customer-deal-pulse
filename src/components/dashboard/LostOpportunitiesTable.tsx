@@ -44,8 +44,8 @@ export function LostOpportunitiesTable({ filters }: { filters: any }) {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {tableData.lostOpportunities?.map((deal: any) => (
-              <tr key={deal.deal_id} className="hover:bg-gray-50">
+            {tableData.lostOpportunities?.map((deal: any, index: number) => (
+              <tr key={`lost-opportunity-${deal.deal_id}-${index}`} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {deal.deal_name}
                 </td>

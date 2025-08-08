@@ -9,7 +9,7 @@ export function DashboardLayout() {
       <Sidebar />
       <DashboardProvider>
         <main className="flex-1 flex flex-col overflow-auto">
-          <div className="w-full px-8 pt-8 pb-4 bg-background/80 sticky top-0 z-10">
+          <div className="w-full px-8 pt-8 pb-4 bg-background/80">
             <DashboardFilters />
           </div>
           <div className="flex-1 px-8 pb-8">

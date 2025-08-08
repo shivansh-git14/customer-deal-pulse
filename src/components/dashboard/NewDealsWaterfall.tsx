@@ -31,11 +31,18 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
 
   // Calculate max deal count for scaling bar heights
   const maxDeals = waterfallData ? Math.max(...waterfallData.map(stage => stage.dealCount)) : 0;
+  
   const getBarHeight = (dealCount: number) => {
-    const minHeight = 100; // Minimum height in pixels
-    const maxHeight = 300; // Maximum height in pixels
+    // Use compact heights for single-glance view
+    const minHeight = 60; // Minimum height
+    const maxHeight = 180; // Maximum height
     if (maxDeals === 0) return minHeight;
-    return Math.max(minHeight, (dealCount / maxDeals) * maxHeight);
+    
+    // Ensure proper scaling - each bar should be proportional
+    const scaleFactor = dealCount / maxDeals;
+    const height = minHeight + (scaleFactor * (maxHeight - minHeight));
+    
+    return Math.round(height);
   };
     
   return (
@@ -64,30 +71,30 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
       {!loading && !error && waterfallData && waterfallData.length > 0 && (
         <div className="space-y-8">
           {/* True Waterfall Chart */}
-          <div className="relative">
+          <div className="relative w-full">
             {/* Chart Container */}
-            <div className="flex items-end justify-center gap-4 py-12" style={{ minHeight: '400px' }}>
+            <div className="flex items-end justify-center gap-1 sm:gap-2 py-4 w-full" style={{ minHeight: '250px', maxHeight: '300px' }}>
               {waterfallData.map((stage, index) => {
                 const barHeight = getBarHeight(stage.dealCount);
                 
                 return (
-                  <React.Fragment key={stage.stage}>
+                  <React.Fragment key={`waterfall-stage-${index}`}>
                     <div className="flex flex-col items-center">
                       {/* Total Deal Value - Above Bar */}
-                      <div className="mb-4 text-center">
+                      <div className="mb-2 text-center">
                         <div className="text-xs text-gray-500 font-medium mb-1">Total deal value</div>
                         <div 
-                          className="text-lg font-bold"
+                          className="text-sm font-bold"
                           style={{ color: getStageColor(index) }}
                         >
-                          {formatValue(stage.totalValue)}
+                          {formatCurrency(stage.totalValue)}
                         </div>
                       </div>
                       
                       {/* Waterfall Bar - Aligned to baseline */}
                       <div className="flex flex-col items-center">
                         <div
-                          className="w-32 rounded-t border-2 border-b-0 flex flex-col justify-center relative transition-all duration-300 hover:shadow-lg"
+                          className="w-16 sm:w-20 rounded-t border-2 border-b-0 flex flex-col justify-center relative transition-all duration-300 hover:shadow-lg"
                           style={{ 
                             height: `${barHeight}px`,
                             borderColor: getStageColor(index),
@@ -97,19 +104,19 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
                           {/* Number of Deals - Center of Bar */}
                           <div className="flex flex-col items-center justify-center">
                             <div 
-                              className="text-2xl font-bold mb-1"
+                              className="text-lg sm:text-xl font-bold mb-1"
                               style={{ color: getStageColor(index) }}
                             >
                               {stage.dealCount}
                             </div>
-                            <div className="text-sm text-gray-600 font-medium">#deals</div>
+                            <div className="text-xs text-gray-600 font-medium">#deals</div>
                           </div>
                         </div>
                         
                         {/* Stage Label */}
-                        <div className="mt-4">
+                        <div className="mt-2">
                           <div 
-                            className="px-4 py-2 rounded text-white text-sm font-medium text-center"
+                            className="px-2 py-1 rounded text-white text-xs font-medium text-center"
                             style={{ backgroundColor: getStageColor(index) }}
                           >
                             {stage.stage}
@@ -120,10 +127,10 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
                     
                     {/* Conversion Rate - Between bars */}
                     {index < waterfallData.length - 1 && (
-                      <div className="flex flex-col items-center justify-center px-4" style={{ minWidth: '80px' }}>
-                        <div className="text-center mb-2">
+                      <div className="flex flex-col items-center justify-center px-1" style={{ minWidth: '50px' }}>
+                        <div className="text-center mb-1">
                           <div 
-                            className="text-lg font-bold mb-1"
+                            className="text-sm font-bold mb-1"
                             style={{ color: getStageColor(index + 1) }}
                           >
                             {waterfallData[index + 1].conversionRate}%
@@ -133,16 +140,14 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
                           </div>
                         </div>
                         {/* Arrow */}
-                        <div className="text-gray-400 text-2xl">→</div>
+                        <div className="text-gray-400 text-lg">→</div>
                       </div>
                     )}
                   </React.Fragment>
                 );
               })}
             </div>
-            
-            {/* Baseline */}
-            <div className="absolute bottom-20 left-0 right-0 h-px bg-gray-300" />
+
           </div>
           
           {/* Summary Statistics */}
