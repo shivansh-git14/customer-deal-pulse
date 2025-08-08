@@ -1,10 +1,11 @@
 
-import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
+};
 
 interface DashboardFilters {
   startDate?: string;
@@ -12,7 +13,7 @@ interface DashboardFilters {
   salesManagerId?: number;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -24,20 +25,20 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
-    // Get the dashboard filters from the request body
-    const { filters } = await req.json() as { filters: DashboardFilters };
-    console.log('Dashboard overview request with filters:', filters);
+    // Parse request body for filters - standardized pattern
+    const { startDate, endDate, salesManagerId } = await req.json();
+    console.log('Dashboard overview request with filters:', { startDate, endDate, salesManagerId });
 
     // Get team members based on sales manager filter
     let teamRepIds: number[] = [];
-    if (filters.salesManagerId) {
+    if (salesManagerId) {
       const { data: teamReps } = await supabase
         .from('sales_reps')
         .select('sales_rep_id')
-        .eq('sales_rep_manager_id', filters.salesManagerId);
+        .eq('sales_rep_manager_id', salesManagerId);
       
       teamRepIds = teamReps?.map(rep => rep.sales_rep_id) || [];
-      console.log('Team rep IDs for manager', filters.salesManagerId, ':', teamRepIds);
+      console.log('Team rep IDs for manager', salesManagerId, ':', teamRepIds);
     }
 
     // 1. Calculate Overall Revenue and Target Completion
@@ -45,11 +46,11 @@ Deno.serve(async (req) => {
       .from('revenue')
       .select('revenue, sales_rep, participation_dt');
     
-    if (filters.startDate) {
-      revenueQuery = revenueQuery.gte('participation_dt', filters.startDate);
+    if (startDate) {
+      revenueQuery = revenueQuery.gte('participation_dt', startDate);
     }
-    if (filters.endDate) {
-      revenueQuery = revenueQuery.lte('participation_dt', filters.endDate);
+    if (endDate) {
+      revenueQuery = revenueQuery.lte('participation_dt', endDate);
     }
 
     const { data: revenueData, error: revenueError } = await revenueQuery;
@@ -58,7 +59,7 @@ Deno.serve(async (req) => {
 
     // Filter by sales manager if specified
     let filteredRevenueData = revenueData;
-    if (filters.salesManagerId && teamRepIds.length > 0) {
+    if (salesManagerId && teamRepIds.length > 0) {
       filteredRevenueData = revenueData?.filter(rev => teamRepIds.includes(rev.sales_rep)) || [];
     }
 
@@ -70,11 +71,11 @@ Deno.serve(async (req) => {
       .from('targets')
       .select('target_value, sales_rep_id, target_month');
     
-    if (filters.startDate) {
-      targetsQuery = targetsQuery.gte('target_month', filters.startDate);
+    if (startDate) {
+      targetsQuery = targetsQuery.gte('target_month', startDate);
     }
-    if (filters.endDate) {
-      targetsQuery = targetsQuery.lte('target_month', filters.endDate);
+    if (endDate) {
+      targetsQuery = targetsQuery.lte('target_month', endDate);
     }
 
     const { data: targetsData, error: targetsError } = await targetsQuery;
@@ -83,7 +84,7 @@ Deno.serve(async (req) => {
 
     // Filter targets by sales manager if specified
     let filteredTargetsData = targetsData;
-    if (filters.salesManagerId && teamRepIds.length > 0) {
+    if (salesManagerId && teamRepIds.length > 0) {
       filteredTargetsData = targetsData?.filter(target => teamRepIds.includes(target.sales_rep_id)) || [];
     }
 
@@ -98,7 +99,7 @@ Deno.serve(async (req) => {
 
     const repPerformance = salesRepsData?.map(rep => {
       if (!rep.sales_rep_manager_id) return null;
-      if (filters.salesManagerId && rep.sales_rep_manager_id !== filters.salesManagerId) return null;
+      if (salesManagerId && rep.sales_rep_manager_id !== salesManagerId) return null;
 
       const repRevenue = filteredRevenueData?.filter(rev => rev.sales_rep === rep.sales_rep_id)
         .reduce((sum, rev) => sum + (Number(rev.revenue) || 0), 0) || 0;
@@ -140,19 +141,19 @@ Deno.serve(async (req) => {
     
     let filteredEvents = Array.isArray(eventsData) ? eventsData.filter(event => {
       const eventDate = event.event_timestamp?.split('T')[0];
-      const isAfterStart = !filters.startDate || eventDate >= filters.startDate;
-      const isBeforeEnd = !filters.endDate || eventDate <= filters.endDate;
+      const isAfterStart = !startDate || eventDate >= startDate;
+      const isBeforeEnd = !endDate || eventDate <= endDate;
       return isAfterStart && isBeforeEnd;
     }) : [];
     
-    if (filters.salesManagerId && teamRepIds.length > 0) {
+    if (salesManagerId && teamRepIds.length > 0) {
       filteredEvents = filteredEvents.filter(event => teamRepIds.includes(event.sales_rep_id));
     }
     
     const totalActivities = filteredEvents.length;
     
     let totalRepsInFilter = 0;
-    if (filters.salesManagerId) {
+    if (salesManagerId) {
       totalRepsInFilter = teamRepIds.length;
     } else {
       totalRepsInFilter = salesRepsData?.filter(rep => rep.sales_rep_manager_id).length || 0;
@@ -179,12 +180,12 @@ Deno.serve(async (req) => {
 
     // Step 2: Apply manager filter if necessary
     let managerFilteredDeals = highRiskDeals;
-    if (filters.salesManagerId) {
-      console.log(`[Debug] Step 2a: Manager filter applied for salesManagerId: ${filters.salesManagerId}`);
+    if (salesManagerId) {
+      console.log(`[Debug] Step 2a: Manager filter applied for salesManagerId: ${salesManagerId}`);
       const { data: repsData, error: repsError } = await supabase
         .from('sales_reps')
         .select('sales_rep_id')
-        .eq('sales_rep_manager_id', filters.salesManagerId);
+        .eq('sales_rep_manager_id', salesManagerId);
 
       if (repsError) {
         console.error('[Error] Failed to fetch sales reps for manager:', repsError.message);

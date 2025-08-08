@@ -24,6 +24,9 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
+    console.log('SUPABASE_URL:', Deno.env.get('SUPABASE_URL'));
+    console.log('SUPABASE_SERVICE_ROLE_KEY:', Deno.env.get('SUPABASE_SERVICE_ROLE_KEY'));
+
     // Parse request body for filters
     const { startDate, endDate, salesManagerId } = req.method === 'POST' ? await req.json() : {};
 
@@ -33,7 +36,7 @@ serve(async (req) => {
     // Step 1: Get prospecting deals with filters applied
     let prospectingQuery = supabase
       .from('deal_historical')
-      .select('deal_id, activity_date, sales_rep_id')
+      .select('deal_id, activity_date, sales_rep_id, customer_id')
       .eq('deal_stage', 'prospecting');
 
     // Apply date filters to prospecting stage
@@ -74,11 +77,26 @@ serve(async (req) => {
     console.log('📋 Debug: Sample prospecting deals:', prospectingDeals?.slice(0, 3));
 
     let avgResponseTime = 0;
+    let conversionRate = 0;
+    let avgProspectingToWonCycle = 0;
+    let avgTouchpoints = 0;
 
     if ((prospectingDeals || []).length > 0) {
       // Step 2: Get qualified deals for matching deal_ids
+      
+      const prospectingMap = (prospectingDeals || []).reduce((acc: any, deal: any) => {
+        const key = deal.deal_id; // Join only on deal_id as per your updated SQL
+        acc[key] = {
+          activity_date: deal.activity_date,
+          sales_rep_id: deal.sales_rep_id
+        };
+        return acc;
+      }, {});
+
+      
       const prospectingDealIds = (prospectingDeals || []).map(deal => deal.deal_id);
       
+
       const { data: qualifiedDeals, error: qualifiedError } = await supabase
         .from('deal_historical')
         .select('deal_id, activity_date, sales_rep_id')
@@ -94,15 +112,7 @@ serve(async (req) => {
       console.log('📊 Debug: Sample qualified deals:', qualifiedDeals?.slice(0, 3));
 
       // Step 3: Join and calculate response times (matching your SQL logic)
-      const prospectingMap = (prospectingDeals || []).reduce((acc: any, deal: any) => {
-        const key = deal.deal_id; // Join only on deal_id as per your updated SQL
-        acc[key] = {
-          activity_date: deal.activity_date,
-          sales_rep_id: deal.sales_rep_id
-        };
-        return acc;
-      }, {});
-
+      
       const qualifiedMap = (qualifiedDeals || []).reduce((acc: any, deal: any) => {
         const key = deal.deal_id;
         if (!acc[key]) acc[key] = [];
@@ -141,59 +151,129 @@ serve(async (req) => {
       avgResponseTime = responseTimes.length > 0 
         ? responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length 
         : 0;
+
+      // 2. Conversion Rate calculation
+      const { data: wonDeals, error: wonError } = await supabase
+          .from('deal_historical')
+          .select('deal_id, activity_date')
+          .in('deal_stage', ['closed_won', 'won'])
+          .in('deal_id', prospectingDealIds);
+
+      if (wonError) {
+        console.error('Error fetching won deals:', wonError);
+        throw wonError;
+      }
+
+      console.log('✅ Debug: won deals found:', wonDeals?.length || 0);
+      console.log('📊 Debug: Sample won deals:', wonDeals?.slice(0, 3));
+      
+      // Create won deals map for efficient lookup
+      const wonMap = (wonDeals || []).reduce((acc: any, deal: any) => {
+        const key = deal.deal_id;
+        if (!acc[key]) acc[key] = [];
+        acc[key].push({
+          activity_date: deal.activity_date
+        });
+        return acc;
+      }, {});
+
+      // Calculate prospecting to won cycle times
+      const prospectingToWonTimes: number[] = [];
+      
+      Object.keys(prospectingMap).forEach(dealId => {
+        const prospectingDeal = prospectingMap[dealId];
+        const wonDeals = wonMap[dealId] || [];
+        
+        // Find won deals for this deal_id
+        wonDeals.forEach((wonDeal: any) => {
+          const prospectingDate = new Date(prospectingDeal.activity_date);
+          const wonDate = new Date(wonDeal.activity_date);
+          
+          // Calculate days difference
+          const cycleDays = (wonDate.getTime() - prospectingDate.getTime()) / (1000 * 60 * 60 * 24);
+          
+          if (cycleDays >= 0) {
+            prospectingToWonTimes.push(cycleDays);
+            console.log(`🏆 Debug: Deal ${dealId} cycle - ${cycleDays.toFixed(1)} days`);
+          }
+        });
+      });
+
+      console.log('🏆 Debug: Valid prospecting-to-won cycles:', prospectingToWonTimes.length);
+      console.log('📈 Debug: Sample cycle times:', prospectingToWonTimes.slice(0, 5));
+        
+      const prospectingCount = prospectingDeals?.length || 0;
+      const wonCount = wonDeals?.length || 0;
+        
+      conversionRate = (wonCount / prospectingCount) * 100;
+        
+        // Calculate average prospecting-to-won cycle time
+      avgProspectingToWonCycle = prospectingToWonTimes.length > 0 
+          ? prospectingToWonTimes.reduce((a, b) => a + b, 0) / prospectingToWonTimes.length 
+          : 0;
+        
+      // Calculate average touchpoints
+      const customerIds = [...new Set(prospectingDeals.map((d: any) => d.customer_id))];
+
+      // 3. Fetch events for those customers
+      const { data: events, error: eventsError } = await supabase
+      .from('events')
+      .select('customer_id, event_id')
+      .in('customer_id', customerIds);
+
+      if (eventsError) {
+      console.error('Error fetching events:', eventsError);
+      throw eventsError;
+      }
+
+      // 4. Map deal_id -> unique touchpoint count
+
+      const dealTouchpointsMap: number[] = [];
+      
+      prospectingDeals.forEach((deal: any) => {
+      const customerEvents = events.filter((e: any) => e.customer_id === deal.customer_id);
+      const uniqueEventIds = new Set(customerEvents.map((e: any) => e.event_id));
+      dealTouchpointsMap.push(uniqueEventIds.size);
+      });
+
+      // 5. Calculate average touchpoints
+      const totalTouchpoints = dealTouchpointsMap.reduce((sum: number, count: number) => sum + count, 0);
+      avgTouchpoints = totalTouchpoints / dealTouchpointsMap.length;
+
+      console.log('Average touchpoints per deal:', avgTouchpoints);
     }
     
     console.log('🎯 Debug: Final avgResponseTime:', avgResponseTime);
-
-    // 2. Conversion Rate calculation
-    const { data: conversionData } = await supabase
-      .from('deal_historical')
-      .select('deal_id, stage');
-
-    const prospectingCount = conversionData?.filter(d => d.stage === 'prospecting').length || 0;
-    const closedWonDeals = conversionData?.filter(d => d.stage === 'closed_won').length || 0;
-    const conversionRate = prospectingCount > 0 ? (closedWonDeals / prospectingCount) * 100 : 0;
-
-    // 3. Deal Cycle Length calculation
-    const { data: cycleData } = await supabase
-      .from('deal_historical')
-      .select('deal_id, stage, stage_change_date')
-      .in('stage', ['prospecting', 'closed_won'])
-      .order('stage_change_date');
-
-    const cycleLengthByDeal = cycleData?.reduce((acc: any, record: any) => {
-      if (!acc[record.deal_id]) acc[record.deal_id] = {};
-      acc[record.deal_id][record.stage] = new Date(record.stage_change_date);
-      return acc;
-    }, {});
-
-    const cycleLengths = Object.values(cycleLengthByDeal || {})
-      .filter((deal: any) => deal.prospecting && deal.closed_won)
-      .map((deal: any) => (deal.closed_won - deal.prospecting) / (1000 * 60 * 60 * 24));
+    console.log('🎯 Debug: Final conversionRate:', conversionRate);
+    console.log('🎯 Debug: Final avgProspectingToWonCycle:', avgProspectingToWonCycle);
+    console.log('🎯 Debug: Final avgTouchpoints:', avgTouchpoints);
     
-    const avgCycleLength = cycleLengths.length > 0
-      ? cycleLengths.reduce((a, b) => a + b, 0) / cycleLengths.length
-      : 0;
-
+    
     // 4. Touchpoints per Deal calculation
-    const { data: touchpointsData } = await supabase
-      .from('events')
-      .select('deal_id')
-      .not('deal_id', 'is', null);
+    // const { data: touchpointsData } = await supabase
+    //   .from('events')
+    //   .select('deal_id')
+    //   .not('deal_id', 'is', null);
 
-    const touchpointsByDeal = touchpointsData?.reduce((acc: any, event: any) => {
-      acc[event.deal_id] = (acc[event.deal_id] || 0) + 1;
-      return acc;
-    }, {});
+    // const touchpointsByDeal = touchpointsData?.reduce((acc: any, event: any) => {
+    //   acc[event.deal_id] = (acc[event.deal_id] || 0) + 1;
+    //   return acc;
+    // }, {});
 
-    const avgTouchpoints = Object.keys(touchpointsByDeal || {}).length > 0
-      ? (Object.values(touchpointsByDeal || {}) as number[]).reduce((a, b) => a + b, 0) / Object.keys(touchpointsByDeal || {}).length
-      : 0;
+    // const avgTouchpoints = Object.keys(touchpointsByDeal || {}).length > 0
+    //   ? (Object.values(touchpointsByDeal || {}) as number[]).reduce((a, b) => a + b, 0) / Object.keys(touchpointsByDeal || {}).length
+    //   : 0;
+
+    // 1. Fetch deals in the date range for a given sales_rep_id
+    
+
+      
+
 
     const metrics: MetricsResponse = {
       leadResponseTime: Math.round(avgResponseTime * 10) / 10,
       conversionRate: Math.round(conversionRate * 10) / 10,
-      dealCycleLength: Math.round(avgCycleLength),
+      dealCycleLength: Math.round(avgProspectingToWonCycle),
       touchpointsPerDeal: Math.round(avgTouchpoints)
     };
 

@@ -24,6 +24,7 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     );
 
+
     // Parse request body for filters
     const { startDate, endDate, salesManagerId } = req.method === 'POST' ? await req.json() : {};
 
@@ -33,7 +34,8 @@ serve(async (req) => {
     let prospectingQuery = supabase
       .from('deal_historical')
       .select('deal_id, activity_date, deal_value, sales_rep_id')
-      .eq('deal_stage', 'prospecting');
+      .eq('deal_stage', 'prospecting')
+        .not('deal_stage', 'is', null);
 
     // Apply date filters to prospecting stage
     if (startDate) {
@@ -178,12 +180,25 @@ serve(async (req) => {
 
     console.log('✅ Debug: Waterfall calculation completed');
 
-    return new Response(JSON.stringify({ success: true, data: waterfallData }), {
+
+    console.log('Waterfall data processed:', waterfallData);
+
+    return new Response(JSON.stringify({ 
+      success: true, 
+      data: {
+        waterfall: waterfallData,
+        stageCounts,
+        stageValues,
+        totalDeals: dealIds.length
+      }
+    }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
+
     console.error('❌ Error in waterfall function:', error);
     return new Response(JSON.stringify({ success: false, error: error.message }), {
+
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 500,
     });

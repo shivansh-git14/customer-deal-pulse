@@ -1,17 +1,18 @@
+
 import React from 'react';
 import { useWaterfallData } from '@/hooks/useNewDealsData';
 
 export function NewDealsWaterfall({ filters }: { filters: any }) {
   const { waterfallData, loading, error } = useWaterfallData(filters);
 
+
   // Debug logging
   console.log('🔍 Waterfall Debug:', { filters, waterfallData, loading, error });
 
-  const formatValue = (value: number) => {
+  const formatCurrency = (value: number) => {
     if (value >= 1000000) {
       return `$${(value / 1000000).toFixed(1)}M`;
-    }
-    if (value >= 1000) {
+    } else if (value >= 1000) {
       return `$${(value / 1000).toFixed(0)}K`;
     }
     return `$${value.toLocaleString()}`;
@@ -36,7 +37,7 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
     if (maxDeals === 0) return minHeight;
     return Math.max(minHeight, (dealCount / maxDeals) * maxHeight);
   };
-
+    
   return (
     <div className="bg-white p-6 rounded-lg shadow border">
       <div className="mb-6">
@@ -170,6 +171,7 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
         </div>
       )}
       
+
       {!loading && !error && (!waterfallData || waterfallData.length === 0) && (
         <div className="h-[400px] flex items-center justify-center">
           <div className="text-center text-gray-500">
