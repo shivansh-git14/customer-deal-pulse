@@ -20,6 +20,8 @@ serve(async (req) => {
     // Parse request body for filters - standardized pattern
     const { startDate, endDate, salesManagerId } = req.method === 'POST' ? await req.json() : {};
 
+    console.log('🚀 RUNTIME VERIFICATION: Executing new-deals-tables function with filters:', { startDate, endDate, salesManagerId });
+    console.log('🔧 CONSOLIDATED FUNCTIONS: About to call get_top_deals_with_details, get_lost_opportunities_with_details, get_lost_opportunities_total_value');
     console.log('🔍 Debug: Received filters:', { startDate, endDate, salesManagerId });
 
     // Call secure PostgreSQL functions instead of complex JavaScript logic
@@ -57,11 +59,6 @@ serve(async (req) => {
     }
 
     console.log(`✅ Debug: Top deals: ${topDealsResult.data?.length || 0}, Lost: ${lostOpportunitiesResult.data?.length || 0}`);
-
-    // Enhanced debugging for total value function
-    console.log('🔍 TOTAL VALUE DEBUG - Raw result:', JSON.stringify(lostTotalValueResult, null, 2));
-    console.log('🔍 TOTAL VALUE DEBUG - Raw data:', lostTotalValueResult.data);
-    console.log('🔍 TOTAL VALUE DEBUG - First item:', lostTotalValueResult.data?.[0]);
 
     const topDeals = topDealsResult.data || [];
     const lostOpportunities = lostOpportunitiesResult.data || [];

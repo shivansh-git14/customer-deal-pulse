@@ -51,22 +51,31 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
 
 
 
-CREATE OR REPLACE FUNCTION "public"."execute_sql"("query" "text") RETURNS json
-    LANGUAGE "plpgsql"
-    AS $$
-DECLARE
-    result_json json;
-BEGIN
-    -- Execute the user-provided query and aggregate the results into a JSON array
-    EXECUTE 'SELECT json_agg(t) FROM (' || query || ') t'
-    INTO result_json;
-    
-    RETURN result_json;
-END;
-$$;
+-- ==========================================
+-- DANGEROUS FUNCTION REMOVED - SECURITY RISK
+-- ==========================================
+-- This function allows arbitrary SQL execution and poses a critical security risk
+-- Reason: SQL injection vulnerability, unauthorized database access
+-- Date: 2025-08-09
+-- Recommendation: Use parameterized functions instead
+-- ==========================================
+--
+-- CREATE OR REPLACE FUNCTION "public"."execute_sql"("query" "text") RETURNS json
+--     LANGUAGE "plpgsql"
+--     AS $$
+-- DECLARE
+--     result_json json;
+-- BEGIN
+--     -- Execute the user-provided query and aggregate the results into a JSON array
+--     EXECUTE 'SELECT json_agg(t) FROM (' || query || ') t'
+--     INTO result_json;
+--     
+--     RETURN result_json;
+-- END;
+-- $$;
 
 
-ALTER FUNCTION "public"."execute_sql"("query" "text") OWNER TO "postgres";
+-- ALTER FUNCTION "public"."execute_sql"("query" "text") OWNER TO "postgres";
 
 SET default_tablespace = '';
 
@@ -960,9 +969,9 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
 
 
 
-GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "anon";
-GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "authenticated";
-GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "service_role";
+-- GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "anon";
+-- GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "authenticated";
+-- GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "service_role";
 
 
 
