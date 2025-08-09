@@ -8,6 +8,7 @@ import OverviewView from "./pages/OverviewView";
 import TeamView from "./pages/TeamView";
 import { LeaderboardView } from "./pages/LeaderboardView";
 import { NewDealsView } from "./pages/NewDealsView";
+import { CustomersView } from "./pages/CustomersView";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +26,7 @@ const App = () => (
             <Route path="team" element={<TeamView />} />
             <Route path="leaderboard" element={<LeaderboardView />} />
             <Route path="new-deals" element={<NewDealsView />} />
+            <Route path="customers" element={<CustomersView />} />
           </Route>
           <Route path="*" element={<NotFound />} />
         </Routes>
