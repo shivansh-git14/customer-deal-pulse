@@ -20,67 +20,61 @@ serve(async (req) => {
     // Parse request body for filters - standardized pattern
     const { startDate, endDate, salesManagerId } = req.method === 'POST' ? await req.json() : {};
 
-    console.log('Fetching new deals tables with filters:', { startDate, endDate, salesManagerId });
+    console.log('🔍 Debug: Received filters:', { startDate, endDate, salesManagerId });
 
-    // Apply filters to queries if needed
-    let topDealsQuery = supabase
-      .from('deal_historical')
-      .select('deal_id, deal_value, deal_stage')
-      .not('deal_stage', 'in.("closed_lost","lost")')
-      .order('deal_value', { ascending: false })
-      .limit(10);
+    // Call secure PostgreSQL functions instead of complex JavaScript logic
+    const [topDealsResult, lostOpportunitiesResult, lostTotalValueResult] = await Promise.all([
+      supabase.rpc('get_top_deals_with_details', {
+        p_start_date: startDate || null,
+        p_end_date: endDate || null,
+        p_manager_id: salesManagerId || null
+      }),
+      supabase.rpc('get_lost_opportunities_with_details', {
+        p_start_date: startDate || null,
+        p_end_date: endDate || null,
+        p_manager_id: salesManagerId || null
+      }),
+      supabase.rpc('get_lost_opportunities_total_value', {
+        p_start_date: startDate || null,
+        p_end_date: endDate || null,
+        p_manager_id: salesManagerId || null
+      })
+    ]);
 
-    let lostOpportunitiesQuery = supabase
-      .from('deal_historical')
-      .select('deal_id, deal_value, deal_stage')
-      .in('deal_stage', ['closed_lost', 'lost'])
-      .order('deal_value', { ascending: false });
-
-    // Apply date filters if provided
-    if (startDate) {
-      topDealsQuery = topDealsQuery.gte('activity_date', startDate);
-      lostOpportunitiesQuery = lostOpportunitiesQuery.gte('activity_date', startDate);
-    }
-    if (endDate) {
-      topDealsQuery = topDealsQuery.lte('activity_date', endDate);
-      lostOpportunitiesQuery = lostOpportunitiesQuery.lte('activity_date', endDate);
-    }
-
-    // Apply manager filter if provided
-    if (salesManagerId) {
-      // Get sales reps under this manager
-      const { data: managedReps } = await supabase
-        .from('sales_reps')
-        .select('sales_rep_id')
-        .eq('sales_rep_manager_id', salesManagerId);
-      
-      const repIds = (managedReps || []).map(rep => rep.sales_rep_id);
-      if (repIds.length > 0) {
-        topDealsQuery = topDealsQuery.in('sales_rep_id', repIds);
-        lostOpportunitiesQuery = lostOpportunitiesQuery.in('sales_rep_id', repIds);
-        console.log('Manager filter applied to tables, rep IDs:', repIds.slice(0, 5));
-      }
+    if (topDealsResult.error) {
+      console.error('Error calling get_top_deals_with_details function:', topDealsResult.error);
+      throw topDealsResult.error;
     }
 
-    // Execute queries
-    const { data: topDeals, error: topDealsError } = await topDealsQuery;
-    const { data: lostOpportunities, error: lostOpportunitiesError } = await lostOpportunitiesQuery;
+    if (lostOpportunitiesResult.error) {
+      console.error('Error calling get_lost_opportunities_with_details function:', lostOpportunitiesResult.error);
+      throw lostOpportunitiesResult.error;
+    }
 
-    if (topDealsError) {
-      console.error('Error fetching top deals:', topDealsError);
-      throw topDealsError;
+    if (lostTotalValueResult.error) {
+      console.error('Error calling get_lost_opportunities_total_value function:', lostTotalValueResult.error);
+      throw lostTotalValueResult.error;
     }
-    if (lostOpportunitiesError) {
-      console.error('Error fetching lost opportunities:', lostOpportunitiesError);
-      throw lostOpportunitiesError;
-    }
+
+    console.log(`✅ Debug: Top deals: ${topDealsResult.data?.length || 0}, Lost: ${lostOpportunitiesResult.data?.length || 0}`);
+
+    // Enhanced debugging for total value function
+    console.log('🔍 TOTAL VALUE DEBUG - Raw result:', JSON.stringify(lostTotalValueResult, null, 2));
+    console.log('🔍 TOTAL VALUE DEBUG - Raw data:', lostTotalValueResult.data);
+    console.log('🔍 TOTAL VALUE DEBUG - First item:', lostTotalValueResult.data?.[0]);
+
+    const topDeals = topDealsResult.data || [];
+    const lostOpportunities = lostOpportunitiesResult.data || [];
+    const lostTotalValue = lostTotalValueResult.data?.[0]?.total_value || 0;
 
     console.log('Top deals found:', topDeals?.length || 0);
     console.log('Lost opportunities found:', lostOpportunities?.length || 0);
+    console.log('Lost total value EXTRACTED:', lostTotalValue);
+    console.log('Lost total value TYPE:', typeof lostTotalValue);
 
     return new Response(JSON.stringify({ 
       success: true, 
-      data: { topDeals, lostOpportunities } 
+      data: { topDeals, lostOpportunities, lostTotalValue } 
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
