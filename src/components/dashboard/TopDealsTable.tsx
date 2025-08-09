@@ -33,7 +33,7 @@ export function TopDealsTable({ filters }: { filters: any }) {
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Deal Name
+                Customer Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Value
@@ -42,7 +42,7 @@ export function TopDealsTable({ filters }: { filters: any }) {
                 Stage
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Probability
+                Last Event
               </th>
             </tr>
           </thead>
@@ -50,18 +50,18 @@ export function TopDealsTable({ filters }: { filters: any }) {
             {tableData.topDeals?.map((deal: any) => (
               <tr key={deal.deal_id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {deal.deal_name}
+                  {deal.customer_name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   ${deal.deal_value?.toLocaleString() || 0}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                    {deal.stage}
+                    {deal.deal_stage}
                   </span>
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                  {deal.probability}%
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs truncate">
+                  {deal.event_summary || 'No recent events'}
                 </td>
               </tr>
             ))}

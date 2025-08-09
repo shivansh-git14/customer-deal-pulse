@@ -9,6 +9,21 @@ interface WaterfallStage {
   conversionRate?: number;
 }
 
+interface DealTableRecord {
+  deal_id: number;
+  deal_value: number;
+  deal_stage: string;
+  customer_name: string;
+  event_summary?: string;
+  event_timestamp?: string;
+}
+
+interface TableData {
+  topDeals: DealTableRecord[];
+  lostOpportunities: DealTableRecord[];
+  lostTotalValue: number;
+}
+
 export function useNewDealsMetrics(filters: any) {
   const [metrics, setMetrics] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -92,7 +107,7 @@ export function useWaterfallData(filters: any) {
 }
 
 export function useNewDealsTableData(filters: any) {
-  const [tableData, setTableData] = useState({ topDeals: [], lostOpportunities: [] });
+  const [tableData, setTableData] = useState<TableData>({ topDeals: [], lostOpportunities: [], lostTotalValue: 0 });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
