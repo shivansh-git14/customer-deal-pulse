@@ -69,6 +69,18 @@ export function Sidebar() {
                 >
                   New Deals
                 </NavLink>
+                <NavLink
+                  to="/customers"
+                  className={({ isActive }) =>
+                    `flex items-center gap-2 px-3 py-2 rounded-md font-medium transition-colors ${
+                      isActive
+                        ? "bg-primary/10 text-primary"
+                        : "hover:bg-sidebar-accent"
+                    }`
+                  }
+                >
+                  Customers
+                </NavLink>
               </div>
             </AccordionContent>
           </AccordionItem>
