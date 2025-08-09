@@ -1,7 +1,5 @@
--- Migration: Update get_customer_lifecycle_chart to correct column names and logic
--- Safe: CREATE OR REPLACE only; no data changes
-
--- Note: Using fully-qualified table names; no search_path change required.
+-- Migration: Fix revenue filtering under manager by filtering via managed customers rather than r.sales_rep
+-- Forward-only: CREATE OR REPLACE FUNCTION
 
 CREATE OR REPLACE FUNCTION public.get_customer_lifecycle_chart(
   p_start_date DATE DEFAULT NULL,
@@ -12,13 +10,13 @@ DECLARE
   chart_data JSON;
   managed_rep_ids INTEGER[];
 BEGIN
-  -- Get managed rep IDs if manager filter is provided
+  -- Resolve managed reps (include the manager themself)
   IF p_manager_id IS NOT NULL THEN
-    SELECT ARRAY_AGG(sales_rep_id) INTO managed_rep_ids
-    FROM public.sales_reps 
-    WHERE sales_rep_manager_id = p_manager_id;
+    SELECT ARRAY_AGG(sr.sales_rep_id) INTO managed_rep_ids
+    FROM public.sales_reps sr
+    WHERE sr.sales_rep_manager_id = p_manager_id
+       OR sr.sales_rep_id = p_manager_id;
 
-    -- If no managed reps found, return empty data
     IF managed_rep_ids IS NULL OR array_length(managed_rep_ids, 1) = 0 THEN
       SELECT JSON_BUILD_OBJECT(
         'success', true,
@@ -29,9 +27,8 @@ BEGIN
     END IF;
   END IF;
 
-  -- Use the proven structure from sql/get_customer_lifecycle_chart_function.sql
   WITH managed_customers AS (
-    -- Customers associated with reps managed by the specified manager (from deals and revenue within range)
+    -- Customers tied to managed reps via deals or revenue in range
     SELECT DISTINCT dh.customer_id
     FROM public.deal_historical dh
     WHERE (p_manager_id IS NOT NULL)
@@ -66,6 +63,7 @@ BEGIN
     WHERE rn = 1
   ),
   revenue_monthly AS (
+    -- Filter revenue by customers rather than rep to avoid dropping unattributed rows
     SELECT 
       DATE_TRUNC('month', r.participation_dt)::date as month,
       r.customer_id,
@@ -73,7 +71,7 @@ BEGIN
     FROM public.revenue r
     WHERE (p_start_date IS NULL OR r.participation_dt >= p_start_date)
       AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
-      AND (p_manager_id IS NULL OR r.sales_rep = ANY(managed_rep_ids))
+      AND (p_manager_id IS NULL OR r.customer_id IN (SELECT customer_id FROM managed_customers))
     GROUP BY DATE_TRUNC('month', r.participation_dt), r.customer_id
   ),
   lifecycle_with_revenue AS (
@@ -142,15 +140,11 @@ BEGIN
     FROM final_data
     GROUP BY month
   ) grouped_data;
-  
-  -- Ensure non-null response even when no rows are returned
+
   IF chart_data IS NULL THEN
-    chart_data := JSON_BUILD_OBJECT(
-      'success', true,
-      'data', '[]'::JSON
-    );
+    chart_data := JSON_BUILD_OBJECT('success', true, 'data', '[]'::JSON);
   END IF;
-  
+
   RETURN chart_data;
 
 EXCEPTION WHEN OTHERS THEN
@@ -167,5 +161,5 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO service_role;
 
-COMMENT ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER)
+COMMENT ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER) 
 IS 'Aggregates customer lifecycle stages by month with revenue data for stacked bar chart visualization';

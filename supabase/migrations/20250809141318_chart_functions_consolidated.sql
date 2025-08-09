@@ -53,7 +53,23 @@ BEGIN
   END IF;
 
   -- Use the proven structure from sql/get_customer_lifecycle_chart_function.sql
-  WITH date_filtered_customers AS (
+  WITH managed_customers AS (
+    -- Customers associated with reps managed by the specified manager (from deals and revenue within range)
+    SELECT DISTINCT dh.customer_id
+    FROM deal_historical dh
+    WHERE (p_manager_id IS NOT NULL)
+      AND (p_start_date IS NULL OR dh.activity_date::date >= p_start_date)
+      AND (p_end_date IS NULL OR dh.activity_date::date <= p_end_date)
+      AND dh.sales_rep_id = ANY(managed_rep_ids)
+    UNION
+    SELECT DISTINCT r.customer_id
+    FROM revenue r
+    WHERE (p_manager_id IS NOT NULL)
+      AND (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+      AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+      AND r.sales_rep = ANY(managed_rep_ids)
+  ),
+  date_filtered_customers AS (
     SELECT 
       DATE_TRUNC('month', csh.activity_date)::date as month,
       csh.life_cycle_stage,
@@ -65,6 +81,7 @@ BEGIN
     FROM customer_stage_historical csh
     WHERE (p_start_date IS NULL OR csh.activity_date >= p_start_date)
       AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
+      AND (p_manager_id IS NULL OR csh.customer_id IN (SELECT customer_id FROM managed_customers))
   ),
   customer_stages_monthly AS (
     SELECT month, life_cycle_stage, customer_id
