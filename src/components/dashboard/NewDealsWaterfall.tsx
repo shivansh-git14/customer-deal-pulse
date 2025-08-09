@@ -78,7 +78,7 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
                 const barHeight = getBarHeight(stage.dealCount);
                 
                 return (
-                  <React.Fragment key={`waterfall-stage-${index}`}>
+                  <div key={`waterfall-stage-${index}`} className="flex items-center">
                     <div className="flex flex-col items-center">
                       {/* Total Deal Value - Above Bar */}
                       <div className="mb-2 text-center">
@@ -143,7 +143,7 @@ export function NewDealsWaterfall({ filters }: { filters: any }) {
                         <div className="text-gray-400 text-lg">→</div>
                       </div>
                     )}
-                  </React.Fragment>
+                  </div>
                 );
               })}
             </div>

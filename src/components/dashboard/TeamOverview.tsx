@@ -170,7 +170,7 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                 </TableRow>
               ) : (
                 teamData.map((team, index) => (
-                  <React.Fragment key={team.team_name}>
+                  <div key={team.team_name}>
                     <TableRow
                       className={`hover:bg-muted/30 transition-colors cursor-pointer ${expandedIndex === index ? 'bg-muted/10' : ''}`}
                       onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
@@ -234,7 +234,7 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                         </TableCell>
                       </TableRow>
                     )}
-                  </React.Fragment>
+                  </div>
                 ))
               )}
             </TableBody>

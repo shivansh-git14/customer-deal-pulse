@@ -2,6 +2,18 @@ import { useNewDealsTableData } from '@/hooks/useNewDealsData';
 
 export function LostOpportunitiesTable({ filters }: { filters: any }) {
   const { tableData, loading, error } = useNewDealsTableData(filters);
+  
+  // Format total value for display with null safety
+  const formatTotalValue = (value: number | undefined | null) => {
+    const safeValue = value || 0;
+    if (safeValue >= 1000000) {
+      return `$${(safeValue / 1000000).toFixed(1)}M`;
+    } else if (safeValue >= 1000) {
+      return `$${(safeValue / 1000).toFixed(0)}K`;
+    } else {
+      return `$${safeValue.toLocaleString()}`;
+    }
+  };
 
   if (loading) {
     return (
@@ -27,19 +39,24 @@ export function LostOpportunitiesTable({ filters }: { filters: any }) {
 
   return (
     <div className="bg-white p-6 rounded-lg shadow border">
-      <h3 className="text-lg font-semibold mb-4">Lost Opportunities</h3>
+      <h3 className="text-lg font-semibold mb-4">
+        Lost Opportunities 
+        <span className="text-sm text-red-600 font-normal ml-2">
+          ({formatTotalValue(tableData.lostTotalValue)} total)
+        </span>
+      </h3>
       <div className="overflow-x-auto">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
             <tr>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Deal Name
+                Customer Name
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                 Value
               </th>
               <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Lost Reason
+                Last Event
               </th>
             </tr>
           </thead>
@@ -47,13 +64,22 @@ export function LostOpportunitiesTable({ filters }: { filters: any }) {
             {tableData.lostOpportunities?.map((deal: any, index: number) => (
               <tr key={`lost-opportunity-${deal.deal_id}-${index}`} className="hover:bg-gray-50">
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                  {deal.deal_name}
+                  {deal.customer_name}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                   ${deal.deal_value?.toLocaleString() || 0}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                  {deal.lost_reason || 'No reason provided'}
+                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 max-w-xs">
+                  {deal.event_summary ? (
+                    <span title={deal.event_summary}>
+                      {deal.event_summary.length > 50 
+                        ? `${deal.event_summary.substring(0, 50)}...` 
+                        : deal.event_summary
+                      }
+                    </span>
+                  ) : (
+                    <span className="text-gray-400 italic">No recent events</span>
+                  )}
                 </td>
               </tr>
             ))}
