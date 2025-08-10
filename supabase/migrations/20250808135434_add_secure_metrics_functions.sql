@@ -33,8 +33,8 @@
 -- LANGUAGE plpgsql
 -- SECURITY DEFINER
 -- AS $$
-BEGIN
-    RETURN QUERY
+-- BEGIN
+--     RETURN QUERY
     WITH filtered_reps AS (
         -- Get sales reps based on manager filter
         SELECT sr.sales_rep_id

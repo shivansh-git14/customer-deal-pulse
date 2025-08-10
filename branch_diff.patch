@@ -1,0 +1,3417 @@
+diff --git a/.gitignore b/.gitignore
+index 2cee49f..cfdf198 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -28,8 +28,5 @@ dist-ssr
+ *.sln
+ *.sw?
+ 
+-# Test files
+-tests/
+-
+ # Vite
+ .vite/
+diff --git a/sql/get_customer_lifecycle_chart_function.sql b/sql/get_customer_lifecycle_chart_function.sql
+deleted file mode 100644
+index 25625e6..0000000
+--- a/sql/get_customer_lifecycle_chart_function.sql
++++ /dev/null
+@@ -1,131 +0,0 @@
+--- Secure PostgreSQL function to get customer lifecycle chart data
+--- Returns monthly composition of customer lifecycle stages with revenue per segment
+-
+-CREATE OR REPLACE FUNCTION get_customer_lifecycle_chart(
+-  p_start_date DATE DEFAULT NULL,
+-  p_end_date DATE DEFAULT NULL,
+-  p_manager_id INTEGER DEFAULT NULL
+-) RETURNS JSON AS $$
+-DECLARE
+-  chart_data JSON;
+-  managed_rep_ids INTEGER[];
+-BEGIN
+-  -- Get managed rep IDs if manager filter is provided
+-  IF p_manager_id IS NOT NULL THEN
+-    SELECT ARRAY_AGG(sales_rep_id) INTO managed_rep_ids
+-    FROM sales_reps 
+-    WHERE sales_rep_manager_id = p_manager_id;
+-    
+-    -- If no reps found, return empty chart data
+-    IF managed_rep_ids IS NULL OR array_length(managed_rep_ids, 1) IS NULL THEN
+-      RETURN json_build_object(
+-        'success', true,
+-        'data', '[]'::json
+-      );
+-    END IF;
+-  END IF;
+-
+-  -- Build chart data: monthly customer lifecycle composition with revenue
+-  WITH date_filtered_customers AS (
+-    -- Get customers in each lifecycle stage per month within date range
+-    SELECT 
+-      DATE_TRUNC('month', csh.activity_date)::date as month,
+-      csh.life_cycle_stage,
+-      csh.customer_id,
+-      -- Get the latest stage record for each customer in each month
+-      ROW_NUMBER() OVER (
+-        PARTITION BY csh.customer_id, DATE_TRUNC('month', csh.activity_date) 
+-        ORDER BY csh.activity_date DESC
+-      ) as rn
+-    FROM customer_stage_historical csh
+-    WHERE (p_start_date IS NULL OR csh.activity_date >= p_start_date)
+-      AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
+-  ),
+-  customer_stages_monthly AS (
+-    -- Keep only the latest stage for each customer per month
+-    SELECT month, life_cycle_stage, customer_id
+-    FROM date_filtered_customers
+-    WHERE rn = 1
+-  ),
+-  revenue_monthly AS (
+-    -- Aggregate revenue by customer and month
+-    SELECT 
+-      DATE_TRUNC('month', r.participation_dt)::date as month,
+-      r.customer_id,
+-      SUM(r.revenue) as total_revenue
+-    FROM revenue r
+-    WHERE (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+-      AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+-      -- Apply manager filter to revenue if provided
+-      AND (p_manager_id IS NULL OR r.sales_rep = ANY(managed_rep_ids))
+-    GROUP BY DATE_TRUNC('month', r.participation_dt), r.customer_id
+-  ),
+-  lifecycle_with_revenue AS (
+-    -- Join customer stages with their revenue for each month
+-    SELECT 
+-      csm.month,
+-      csm.life_cycle_stage,
+-      csm.customer_id,
+-      COALESCE(rm.total_revenue, 0) as customer_revenue
+-    FROM customer_stages_monthly csm
+-    LEFT JOIN revenue_monthly rm ON csm.month = rm.month AND csm.customer_id = rm.customer_id
+-  ),
+-  stage_totals AS (
+-    -- Aggregate by month and lifecycle stage
+-    SELECT 
+-      month,
+-      life_cycle_stage,
+-      COUNT(DISTINCT customer_id) as customer_count,
+-      SUM(customer_revenue) as total_revenue
+-    FROM lifecycle_with_revenue
+-    GROUP BY month, life_cycle_stage
+-  ),
+-  monthly_totals AS (
+-    -- Get total customers per month for percentage calculation
+-    SELECT 
+-      month,
+-      SUM(customer_count) as total_customers_in_month
+-    FROM stage_totals
+-    GROUP BY month
+-  ),
+-  final_data AS (
+-    -- Calculate percentages and format data
+-    SELECT 
+-      st.month,
+-      json_agg(
+-        json_build_object(
+-          'stage', st.life_cycle_stage,
+-          'customerCount', st.customer_count,
+-          'totalRevenue', ROUND(st.total_revenue, 2),
+-          'percentage', CASE 
+-            WHEN mt.total_customers_in_month > 0 
+-            THEN ROUND((st.customer_count::NUMERIC / mt.total_customers_in_month::NUMERIC) * 100, 1)
+-            ELSE 0 
+-          END
+-        ) ORDER BY st.life_cycle_stage
+-      ) as stages
+-    FROM stage_totals st
+-    JOIN monthly_totals mt ON st.month = mt.month
+-    GROUP BY st.month, mt.total_customers_in_month
+-  )
+-  -- Build final JSON response
+-  SELECT json_agg(
+-    json_build_object(
+-      'month', TO_CHAR(month, 'YYYY-MM'),
+-      'stages', stages
+-    ) ORDER BY month
+-  ) INTO chart_data
+-  FROM final_data;
+-
+-  -- Return the chart data
+-  RETURN json_build_object(
+-    'success', true,
+-    'data', COALESCE(chart_data, '[]'::json)
+-  );
+-
+-END;
+-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-
+--- Grant execute permission
+-GRANT EXECUTE ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO authenticated;
+-GRANT EXECUTE ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO service_role;
+diff --git a/src/App.tsx b/src/App.tsx
+index 538bf9e..2e990a2 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -8,7 +8,6 @@ import OverviewView from "./pages/OverviewView";
+ import TeamView from "./pages/TeamView";
+ import { LeaderboardView } from "./pages/LeaderboardView";
+ import { NewDealsView } from "./pages/NewDealsView";
+-import { CustomersView } from "./pages/CustomersView";
+ import NotFound from "./pages/NotFound";
+ 
+ const queryClient = new QueryClient();
+@@ -26,7 +25,6 @@ const App = () => (
+             <Route path="team" element={<TeamView />} />
+             <Route path="leaderboard" element={<LeaderboardView />} />
+             <Route path="new-deals" element={<NewDealsView />} />
+-            <Route path="customers" element={<CustomersView />} />
+           </Route>
+           <Route path="*" element={<NotFound />} />
+         </Routes>
+diff --git a/src/components/dashboard/CustomerLifecycleChart.tsx b/src/components/dashboard/CustomerLifecycleChart.tsx
+deleted file mode 100644
+index 14fbee7..0000000
+--- a/src/components/dashboard/CustomerLifecycleChart.tsx
++++ /dev/null
+@@ -1,256 +0,0 @@
+-import React, { useState } from 'react';
+-import { useCustomerLifecycleChart } from '@/hooks/useCustomerLifecycleChart';
+-import type { CustomerLifecycleFilters, LifecycleStage } from '@/hooks/useCustomerLifecycleChart';
+-
+-interface CustomerLifecycleChartProps {
+-  filters: CustomerLifecycleFilters;
+-}
+-
+-interface TooltipData {
+-  stage: LifecycleStage;
+-  month: string;
+-  x: number;
+-  y: number;
+-}
+-
+-export function CustomerLifecycleChart({ filters }: CustomerLifecycleChartProps) {
+-  const { data, loading, error } = useCustomerLifecycleChart(filters);
+-  const [tooltipData, setTooltipData] = useState<TooltipData | null>(null);
+-
+-  // console.debug('Customer Lifecycle Chart:', { filters, data, loading, error });
+-
+-  const formatCurrency = (value: number) => {
+-    if (value >= 1000000) {
+-      return `$${(value / 1000000).toFixed(1)}M`;
+-    } else if (value >= 1000) {
+-      return `$${(value / 1000).toFixed(0)}K`;
+-    }
+-    return `$${value.toLocaleString()}`;
+-  };
+-
+-  const formatMonth = (monthString: string) => {
+-    const date = new Date(monthString + '-01');
+-    return date.toLocaleDateString('en-US', { 
+-      month: 'short', 
+-      year: 'numeric' 
+-    });
+-  };
+-
+-  // Consistent stage ordering across months
+-  const STAGE_ORDER = ['Acquisition', 'Newly Acquired', 'Loyal', 'At Risk'];
+-  const orderIndex = (stageName: string) => {
+-    const idx = STAGE_ORDER.indexOf(stageName);
+-    return idx === -1 ? Number.MAX_SAFE_INTEGER : idx;
+-  };
+-
+-  // Vibrant modern color palette (accessible contrast)
+-  const getStageColor = (stage: string) => {
+-    const stageColors: { [key: string]: string } = {
+-      'Acquisition': '#2563EB',     // Blue-600
+-      'Newly Acquired': '#8B5CF6',  // Violet-600
+-      'Loyal': '#10B981',           // Emerald-500
+-      'At Risk': '#EF4444',         // Red-500
+-    };
+-    return stageColors[stage] || '#A3A3A3';
+-  };
+-
+-  // Calculate max customer count for consistent scaling (reserved if needed later)
+-  const maxCustomers = data?.chartData 
+-    ? Math.max(...data.chartData.flatMap(month => month.stages.map(stage => stage.customerCount))) 
+-    : 0;
+-
+-  // Responsive sizing based on number of months
+-  const monthsCount = data?.chartData?.length ?? 0;
+-  const chartHeight = 260;
+-  const barWidth = monthsCount > 18 ? 22 : monthsCount > 14 ? 28 : monthsCount > 10 ? 34 : monthsCount > 6 ? 42 : 56;
+-  const barSpacing = monthsCount > 18 ? 8 : monthsCount > 14 ? 10 : monthsCount > 10 ? 12 : monthsCount > 6 ? 14 : 16;
+-  const plotWidth = monthsCount * (barWidth + barSpacing);
+-  const yTicks = [0, 25, 50, 75, 100];
+-  const xTickStep = Math.max(1, Math.ceil(monthsCount / 6));
+-
+-  const handleMouseEnter = (stage: LifecycleStage, month: string, event: React.MouseEvent) => {
+-    const rect = event.currentTarget.getBoundingClientRect();
+-    setTooltipData({
+-      stage,
+-      month,
+-      x: rect.left + rect.width / 2,
+-      y: rect.top - 10
+-    });
+-  };
+-
+-  const handleMouseLeave = () => {
+-    setTooltipData(null);
+-  };
+-
+-  return (
+-    <div className="bg-white p-6 rounded-lg shadow border border-gray-200">
+-      <div className="mb-6">
+-        <h3 className="text-xl font-semibold text-gray-900 mb-2">Customer Lifecycle Composition</h3>
+-        <p className="text-sm text-gray-600">Monthly breakdown of customer lifecycle stages with revenue per segment</p>
+-      </div>
+-      
+-      {loading && (
+-        <div className="h-[400px] flex items-center justify-center">
+-          <div className="flex flex-col items-center">
+-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 mb-4" style={{ borderBottomColor: '#274a78' }}></div>
+-            <div className="text-gray-600">Loading lifecycle data...</div>
+-          </div>
+-        </div>
+-      )}
+-      
+-      {error && (
+-        <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+-          <div className="text-red-800 font-medium mb-1">Error Loading Data</div>
+-          <div className="text-red-600 text-sm">{error}</div>
+-        </div>
+-      )}
+-      
+-      {!loading && !error && data && data.chartData.length > 0 && (
+-        <div className="space-y-8">
+-          {/* Stacked Bar Chart with Axes */}
+-          <div className="relative">
+-            <div className="overflow-x-auto">
+-              <div className="py-2">
+-                <div className="flex items-start gap-3">
+-                  {/* Y Axis */}
+-                  <div className="shrink-0" style={{ height: `${chartHeight}px` }}>
+-                    <div className="h-full flex flex-col justify-between text-xs text-gray-500">
+-                      {yTicks.slice().reverse().map((t) => (
+-                        <div key={`yt-${t}`} className="leading-none">{t}%</div>
+-                      ))}
+-                    </div>
+-                  </div>
+-                  {/* Plot Area */}
+-                  <div className="relative" style={{ minWidth: `${plotWidth}px` }}>
+-                    <div className="relative" style={{ height: `${chartHeight}px` }}>
+-                      {/* Gridlines */}
+-                      <div className="absolute inset-0 pointer-events-none">
+-                        {yTicks.map((t) => (
+-                          <div
+-                            key={`grid-${t}`}
+-                            className="absolute left-0 right-0 border-t border-gray-100"
+-                            style={{ bottom: `${t}%` }}
+-                          />
+-                        ))}
+-                      </div>
+-                      {/* Bars */}
+-                      <div className="absolute inset-0 flex items-end gap-4" style={{ gap: `${barSpacing}px` }}>
+-                        {data.chartData.map((monthData, monthIndex) => {
+-                          return (
+-                            <div key={`month-${monthIndex}`} className="flex flex-col items-center" style={{ width: `${barWidth}px` }}>
+-                              <div 
+-                                className="relative border border-gray-200 rounded w-full"
+-                                style={{ height: `${chartHeight}px`, backgroundColor: '#f9fafb' }}
+-                              >
+-                                {(() => {
+-                                  const sortedStages = monthData.stages
+-                                    .slice()
+-                                    .sort((a, b) => orderIndex(a.stage) - orderIndex(b.stage));
+-                                  return sortedStages.map((stage, stageIndex) => {
+-                                      const segmentHeight = (stage.percentage / 100) * chartHeight;
+-                                      const prevPct = sortedStages
+-                                        .slice(0, stageIndex)
+-                                        .reduce((sum, s) => sum + s.percentage, 0);
+-                                      const bottomOffset = (prevPct / 100) * chartHeight;
+-                                      const isTop = stageIndex === sortedStages.length - 1;
+-                                      const isBottom = stageIndex === 0;
+-                                      return (
+-                                        <div
+-                                          key={`${stage.stage}-${stageIndex}`}
+-                                          className="absolute left-0 w-full"
+-                                          style={{ 
+-                                            height: `${segmentHeight}px`,
+-                                            bottom: `${bottomOffset}px`,
+-                                            backgroundColor: getStageColor(stage.stage),
+-                                            borderTopLeftRadius: isTop ? 4 : 0,
+-                                            borderTopRightRadius: isTop ? 4 : 0,
+-                                            borderBottomLeftRadius: isBottom ? 4 : 0,
+-                                            borderBottomRightRadius: isBottom ? 4 : 0
+-                                          }}
+-                                          onMouseEnter={(e) => handleMouseEnter(stage, monthData.month, e)}
+-                                          onMouseLeave={handleMouseLeave}
+-                                        >
+-                                        </div>
+-                                      );
+-                                    });
+-                                  })()}
+-                              </div>
+-                            </div>
+-                          );
+-                        })}
+-                      </div>
+-                    </div>
+-                    {/* X Axis */}
+-                    <div className="relative mt-3" style={{ minWidth: `${plotWidth}px` }}>
+-                      <div className="h-px w-full bg-gray-200" />
+-                      {data.chartData.map((monthData, i) => {
+-                        if (i % xTickStep !== 0) return null;
+-                        const left = i * (barWidth + barSpacing) + barWidth / 2;
+-                        return (
+-                          <div key={`xt-${i}`} className="absolute -bottom-1 translate-y-full -translate-x-1/2 text-xs text-gray-600" style={{ left: `${left}px` }}>
+-                            {formatMonth(monthData.month)}
+-                          </div>
+-                        );
+-                      })}
+-                    </div>
+-                  </div>
+-                </div>
+-              </div>
+-            </div>
+-          </div>
+-
+-          {/* Legend - consistent order */}
+-          <div className="flex flex-wrap justify-center gap-4 pt-6 border-t border-gray-200">
+-            {(() => {
+-              const ordered = STAGE_ORDER.filter(s => data.availableStages.includes(s));
+-              const extras = data.availableStages.filter(s => !STAGE_ORDER.includes(s)).sort();
+-              return [...ordered, ...extras].map((stage) => (
+-                <div key={stage} className="flex items-center gap-2">
+-                  <div 
+-                    className="w-4 h-4 rounded"
+-                    style={{ backgroundColor: getStageColor(stage) }}
+-                  ></div>
+-                  <span className="text-sm text-gray-700">{stage}</span>
+-                </div>
+-              ));
+-            })()}
+-          </div>
+-
+-          {/* Summary Statistics removed per design feedback */}
+-        </div>
+-      )}
+-      
+-      {!loading && !error && (!data || data.chartData.length === 0) && (
+-        <div className="h-[400px] flex items-center justify-center">
+-          <div className="text-center text-gray-500">
+-            <div className="text-6xl mb-4">📊</div>
+-            <p className="text-lg font-medium mb-2">No lifecycle data available</p>
+-            <p className="text-sm">Try adjusting your date filters or check if customer data exists in the database</p>
+-          </div>
+-        </div>
+-      )}
+-
+-      {/* Tooltip */}
+-      {tooltipData && (
+-        <div
+-          className="fixed z-50 bg-gray-900 text-white px-3 py-2 rounded-lg shadow-lg text-sm pointer-events-none"
+-          style={{
+-            left: `${tooltipData.x}px`,
+-            top: `${tooltipData.y}px`,
+-            transform: 'translateX(-50%) translateY(-100%)'
+-          }}
+-        >
+-          <div className="font-medium">{tooltipData.stage.stage}</div>
+-          <div className="text-gray-300">
+-            {formatMonth(tooltipData.month)}
+-          </div>
+-          <div className="border-t border-gray-700 mt-1 pt-1">
+-            <div>Customers: {tooltipData.stage.customerCount}</div>
+-            <div>Revenue: {formatCurrency(tooltipData.stage.totalRevenue)}</div>
+-            <div>Percentage: {Math.round(tooltipData.stage.percentage)}%</div>
+-          </div>
+-        </div>
+-      )}
+-    </div>
+-  );
+-}
+diff --git a/src/components/dashboard/TeamOverview.tsx b/src/components/dashboard/TeamOverview.tsx
+index 2c5d841..4fa6f69 100644
+--- a/src/components/dashboard/TeamOverview.tsx
++++ b/src/components/dashboard/TeamOverview.tsx
+@@ -170,7 +170,7 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
+                 </TableRow>
+               ) : (
+                 teamData.map((team, index) => (
+-                  <React.Fragment key={team.team_name}>
++                  <div key={team.team_name}>
+                     <TableRow
+                       className={`hover:bg-muted/30 transition-colors cursor-pointer ${expandedIndex === index ? 'bg-muted/10' : ''}`}
+                       onClick={() => setExpandedIndex(expandedIndex === index ? null : index)}
+@@ -230,11 +230,11 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
+                     {expandedIndex === index && (
+                       <TableRow key={`${team.team_name}-details`}>
+                         <TableCell colSpan={9}>
+-                          <RepInsightsPanel />
++                          <RepInsightsPanel teamName={team.team_name} filters={filters} />
+                         </TableCell>
+                       </TableRow>
+                     )}
+-                  </React.Fragment>
++                  </div>
+                 ))
+               )}
+             </TableBody>
+diff --git a/src/components/layout/Sidebar.tsx b/src/components/layout/Sidebar.tsx
+index 9026809..27a06e7 100644
+--- a/src/components/layout/Sidebar.tsx
++++ b/src/components/layout/Sidebar.tsx
+@@ -69,18 +69,6 @@ export function Sidebar() {
+                 >
+                   New Deals
+                 </NavLink>
+-                <NavLink
+-                  to="/customers"
+-                  className={({ isActive }) =>
+-                    `flex items-center gap-2 px-3 py-2 rounded-md font-medium transition-colors ${
+-                      isActive
+-                        ? "bg-primary/10 text-primary"
+-                        : "hover:bg-sidebar-accent"
+-                    }`
+-                  }
+-                >
+-                  Customers
+-                </NavLink>
+               </div>
+             </AccordionContent>
+           </AccordionItem>
+diff --git a/src/hooks/useCustomerLifecycleChart.ts b/src/hooks/useCustomerLifecycleChart.ts
+deleted file mode 100644
+index 296a7b7..0000000
+--- a/src/hooks/useCustomerLifecycleChart.ts
++++ /dev/null
+@@ -1,99 +0,0 @@
+-import { useState, useEffect } from 'react';
+-import { supabase } from '@/integrations/supabase/client';
+-
+-export interface CustomerLifecycleFilters {
+-  startDate?: string;
+-  endDate?: string;
+-  salesManagerId?: number;
+-}
+-
+-export interface LifecycleStage {
+-  stage: string;
+-  customerCount: number;
+-  totalRevenue: number;
+-  percentage: number;
+-}
+-
+-export interface MonthlyLifecycleData {
+-  month: string;
+-  stages: LifecycleStage[];
+-}
+-
+-export interface CustomerLifecycleChartData {
+-  chartData: MonthlyLifecycleData[];
+-  availableManagers: Array<{
+-    sales_rep_id: number;
+-    sales_rep_name: string;
+-  }>;
+-  availableStages: string[];
+-  metadata: {
+-    totalMonths: number;
+-    dateRange: {
+-      startDate?: string;
+-      endDate?: string;
+-    };
+-    filterApplied: {
+-      salesManagerId?: number;
+-    };
+-  };
+-}
+-
+-export const useCustomerLifecycleChart = (filters: CustomerLifecycleFilters) => {
+-  const [data, setData] = useState<CustomerLifecycleChartData | null>(null);
+-  const [loading, setLoading] = useState(true);
+-  const [error, setError] = useState<string | null>(null);
+-
+-  useEffect(() => {
+-    const fetchLifecycleData = async () => {
+-      try {
+-        setLoading(true);
+-        setError(null);
+-
+-        console.log('Fetching customer lifecycle chart data with filters:', filters);
+-
+-        const { data: result, error: functionError } = await supabase.functions.invoke(
+-          'customer-lifecycle-chart',
+-          {
+-            body: {
+-              startDate: filters.startDate,
+-              endDate: filters.endDate,
+-              salesManagerId: filters.salesManagerId
+-            }
+-          }
+-        );
+-
+-        console.log('Customer lifecycle function response:', { result, functionError });
+-
+-        if (functionError) {
+-          console.error('Function error details:', functionError);
+-          throw new Error(`Function error: ${functionError.message}`);
+-        }
+-
+-        if (!result) {
+-          throw new Error('No data returned from customer lifecycle function');
+-        }
+-
+-        if (!result.success) {
+-          throw new Error(result.error || 'Failed to fetch customer lifecycle data');
+-        }
+-
+-        console.log('Customer lifecycle data loaded successfully:', {
+-          monthsCount: result.data.chartData?.length || 0,
+-          stagesCount: result.data.availableStages?.length || 0,
+-          managersCount: result.data.availableManagers?.length || 0
+-        });
+-
+-        setData(result.data);
+-      } catch (err) {
+-        console.error('Customer lifecycle data fetch error:', err);
+-        setError(err instanceof Error ? err.message : 'An error occurred');
+-      } finally {
+-        setLoading(false);
+-      }
+-    };
+-
+-    fetchLifecycleData();
+-  }, [filters.startDate, filters.endDate, filters.salesManagerId]);
+-
+-  return { data, loading, error };
+-};
+diff --git a/src/pages/CustomersView.tsx b/src/pages/CustomersView.tsx
+deleted file mode 100644
+index 58764a4..0000000
+--- a/src/pages/CustomersView.tsx
++++ /dev/null
+@@ -1,59 +0,0 @@
+-import { CustomerLifecycleChart } from "@/components/dashboard/CustomerLifecycleChart";
+-import { useDashboard } from "@/contexts/DashboardContext";
+-
+-export function CustomersView() {
+-  const { filters } = useDashboard();
+-
+-  return (
+-    <div className="space-y-6">
+-      {/* Header */}
+-      <div>
+-        <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
+-        <p className="text-muted-foreground">Monthly lifecycle composition and customer health</p>
+-      </div>
+-
+-      {/* Filters are available globally in the header; no local banner here */}
+-
+-      {/* Main content: chart spans right, left stacks cards to avoid gaps */}
+-      <div className="grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-2 gap-6">
+-        {/* Left column: spans two rows */}
+-        <div className="lg:col-span-5 lg:row-span-2 flex flex-col gap-6">
+-          {/* Metric cards */}
+-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+-            <div className="rounded-lg border bg-white p-4 shadow-sm">
+-              <div className="text-sm font-medium">% At-Risk Rate</div>
+-              <div className="text-xs text-muted-foreground"># at-risk customers / total customers</div>
+-            </div>
+-            <div className="rounded-lg border bg-white p-4 shadow-sm">
+-              <div className="text-sm font-medium">% Customers with DM</div>
+-              <div className="text-xs text-muted-foreground">Customers with at least 1 decision-maker</div>
+-            </div>
+-            <div className="rounded-lg border bg-white p-4 shadow-sm">
+-              <div className="text-sm font-medium">Health / Engagement</div>
+-              <div className="text-xs text-muted-foreground">Weighted avg of contact score</div>
+-            </div>
+-            <div className="rounded-lg border bg-white p-4 shadow-sm">
+-              <div className="text-sm font-medium">% Repeat Revenue</div>
+-              <div className="text-xs text-muted-foreground">Repeat $ / total $</div>
+-            </div>
+-          </div>
+-          {/* Top Customers */}
+-          <div className="rounded-lg border bg-white p-4">
+-            <div className="text-sm font-semibold mb-3">Top Customers</div>
+-            <div className="text-sm text-muted-foreground">Table coming next.</div>
+-          </div>
+-          {/* Top Issues */}
+-          <div className="rounded-lg border bg-white p-4">
+-            <div className="text-sm font-semibold mb-3">Top Issues</div>
+-            <div className="text-sm text-muted-foreground">Insights coming next.</div>
+-          </div>
+-        </div>
+-
+-        {/* Chart (right) spans two rows */}
+-        <div className="lg:col-span-7 lg:row-span-2">
+-          <CustomerLifecycleChart filters={filters} />
+-        </div>
+-      </div>
+-    </div>
+-  );
+-}
+diff --git a/supabase-function-management.md b/supabase-function-management.md
+deleted file mode 100644
+index 74a25e6..0000000
+--- a/supabase-function-management.md
++++ /dev/null
+@@ -1,310 +0,0 @@
+-# Supabase Function Management - Single Source of Truth
+-
+-## 🎯 Problem: Function Version Sprawl
+-
+-**Common Issues:**
+-- Same function defined in multiple migration files
+-- Minor variations causing confusion
+-- Unclear which version is "current"
+-- Deployment order dependencies
+-- Debugging difficulties
+-
+-## ✅ Solution: Single Source of Truth Strategy
+-
+-### Approach 1: Canonical Migration Files (Recommended)
+-
+-**Structure:**
+-```
+-supabase/migrations/
+-├── 20250805172018_initial_schema.sql         # Tables, indexes, policies
+-├── 20250808135434_core_functions.sql         # ALL business logic functions
+-├── 20250809133406_schema_updates.sql         # Schema changes only
+-└── 20250810XXXXXX_function_updates.sql       # Future function changes
+-```
+-
+-**Benefits:**
+-- ✅ Each function has ONE definitive location
+-- ✅ Easy to find and update functions
+-- ✅ Clear separation of concerns
+-- ✅ Reduced deployment conflicts
+-
+-### Approach 2: Function-Specific Files
+-
+-**Structure:**
+-```
+-supabase/migrations/
+-├── 20250808135434_metrics_functions.sql      # get_deal_metrics, get_team_metrics
+-├── 20250808135435_table_functions.sql        # get_top_deals_*, get_lost_opportunities_*
+-├── 20250808135436_chart_functions.sql        # get_customer_lifecycle_chart
+-└── 20250808135437_utility_functions.sql      # Helper functions
+-```
+-
+-**Benefits:**
+-- ✅ Logical grouping by purpose
+-- ✅ Easier to track related changes
+-- ✅ Parallel development possible
+-
+-## 🔧 Implementation Strategy
+-
+-### Step 1: Function Audit
+-```sql
+--- List all functions in your database
+-SELECT 
+-    schemaname,
+-    functionname,
+-    definition
+-FROM pg_catalog.pg_proc p
+-JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+-WHERE n.nspname = 'public'
+-AND p.prokind = 'f'
+-ORDER BY functionname;
+-```
+-
+-### Step 2: Migration Consolidation
+-
+-**Option A: Create Master Function Migration**
+-```bash
+-# Create new comprehensive migration
+-npx supabase migration new "consolidate_all_functions"
+-
+-# Move all function definitions to this file
+-# Remove function definitions from other migrations
+-```
+-
+-**Option B: Use Latest Versions Only**
+-```bash
+-# Keep only the most recent version of each function
+-# Comment out older versions in previous migrations
+-```
+-
+-### Step 3: Function Documentation Template
+-```sql
+--- Function: get_example_function
+--- Purpose: Brief description of what this function does
+--- Parameters: 
+---   - p_start_date: Filter start date (optional)
+---   - p_end_date: Filter end date (optional)
+--- Returns: JSON with structured data
+--- Last Updated: 2025-08-09
+--- Dependencies: tables A, B, C
+-
+-CREATE OR REPLACE FUNCTION get_example_function(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL
+-)
+-RETURNS TABLE (
+-    id integer,
+-    value numeric
+-)
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-BEGIN
+-    -- Function logic here
+-END;
+-$$;
+-```
+-
+-## 📋 Maintenance Workflow
+-
+-### When Updating Functions:
+-
+-1. **Always use CREATE OR REPLACE FUNCTION**
+-   ```sql
+-   CREATE OR REPLACE FUNCTION function_name() -- ✅ Good
+-   CREATE FUNCTION function_name()            -- ❌ Bad
+-   ```
+-
+-2. **Update in canonical location only**
+-   ```bash
+-   # Find the function's canonical file
+-   grep -r "function_name" supabase/migrations/
+-   
+-   # Edit only the canonical file
+-   # DO NOT create new migrations for minor changes
+-   ```
+-
+-3. **Version control strategy**
+-   ```sql
+-   -- Add version comments
+-   -- Version: 2.1
+-   -- Changes: Added new parameter p_filter
+-   CREATE OR REPLACE FUNCTION my_function(...)
+-   ```
+-
+-## 🚨 Anti-Patterns to Avoid
+-
+-### ❌ DON'T: Duplicate Function Definitions
+-```sql
+--- Migration 1
+-CREATE OR REPLACE FUNCTION get_data() RETURNS TABLE...
+-
+--- Migration 2  
+-CREATE OR REPLACE FUNCTION get_data() RETURNS TABLE... -- ❌ Duplicate!
+-```
+-
+-### ❌ DON'T: Minor Variations
+-```sql
+--- Don't create get_data_v1, get_data_v2, get_data_final
+--- Use CREATE OR REPLACE instead
+-```
+-
+-### ❌ DON'T: Manual Dashboard Edits
+-```sql
+--- Don't edit functions in Supabase Dashboard
+--- Always use migration files
+-```
+-
+-## ✅ Best Practices
+-
+-### 1. Function Naming Convention
+-```sql
+--- Use consistent prefixes
+-get_*     -- Data retrieval functions
+-calc_*    -- Calculation functions
+-proc_*    -- Processing functions
+-util_*    -- Utility functions
+-```
+-
+-### 2. Parameter Consistency
+-```sql
+--- Use consistent parameter patterns
+-p_start_date date DEFAULT NULL
+-p_end_date date DEFAULT NULL  
+-p_manager_id integer DEFAULT NULL
+-```
+-
+-### 3. Return Type Standards
+-```sql
+--- Consistent return patterns
+-RETURNS TABLE (...)              -- For data sets
+-RETURNS JSON                     -- For complex structures
+-RETURNS numeric                  -- For single values
+-```
+-
+-### 4. Security Standards
+-```sql
+--- Always include security context
+-LANGUAGE plpgsql
+-SECURITY DEFINER  -- Run with creator privileges
+-```
+-
+-## 🔍 Function Audit Checklist
+-
+-- [ ] All functions have clear, single definitions
+-- [ ] No duplicate function names across migrations
+-- [ ] All functions follow naming conventions
+-- [ ] Parameter patterns are consistent
+-- [ ] Return types are standardized
+-- [ ] Security settings are appropriate
+-- [ ] Dependencies are documented
+-- [ ] Version history is tracked
+-
+-## 🚀 Next Steps for Your Codebase
+-
+-1. **Audit existing functions** (see commands above)
+-2. **Identify duplicates** across migration files
+-3. **Choose consolidation strategy** (canonical file vs grouped files)
+-4. **Create consolidated migration** with latest versions
+-5. **Remove/comment old versions** in previous migrations
+-6. **Document all functions** with standard template
+-7. **Establish update workflow** for future changes
+-
+----
+-
+-## 🔍 Function Verification & Monitoring
+-
+-### Method 1: Database Query (Most Accurate)
+-**Check what functions actually exist in your cloud database:**
+-
+-```sql
+-SELECT routine_name, routine_definition 
+-FROM information_schema.routines 
+-WHERE routine_schema = 'public' 
+-AND routine_type = 'FUNCTION'
+-AND routine_name IN (
+-    'get_deal_metrics',
+-    'get_team_metrics', 
+-    'get_top_deals_with_details',
+-    'get_lost_opportunities_with_details',
+-    'get_lost_opportunities_total_value',
+-    'get_customer_lifecycle_chart'
+-)
+-ORDER BY routine_name;
+-```
+-
+-**Run this in:** Supabase Dashboard → SQL Editor
+-
+-### Method 2: Check Consolidated Files (Source of Truth)
+-Since functions are consolidated, the **current logic** is exactly what's in:
+-- **Metrics:** `20250809140632_metrics_functions_consolidated.sql`
+-- **Tables:** `20250809141053_table_functions_consolidated.sql`  
+-- **Charts:** `20250809141318_chart_functions_consolidated.sql`
+-
+-### Method 3: Runtime Verification
+-Edge functions have logging that shows which functions are called:
+-- Check browser DevTools → Network tab
+-- Review edge function logs in Supabase Dashboard
+-- Monitor console.log outputs during dashboard usage
+-
+-## 🔧 Function Change Management
+-
+-### ✅ CORRECT: Create New Migration
+-**To modify ANY existing function:**
+-
+-```bash
+-# 1. Create new migration
+-npx supabase migration new update_function_name
+-
+-# 2. In the new migration file, use CREATE OR REPLACE
+-CREATE OR REPLACE FUNCTION get_deal_metrics(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL,
+-    p_manager_id integer DEFAULT NULL
+-    -- Add new parameters here if needed
+-)
+-RETURNS TABLE (
+-    -- Updated return structure
+-    leadresponsetime numeric,
+-    conversionrate numeric,
+-    dealcyclelength numeric,
+-    touchpointsperdeal numeric
+-)
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-BEGIN
+-    -- Updated function logic here
+-    RETURN QUERY
+-    -- New implementation
+-END;
+-$$;
+-
+-# 3. Deploy the change
+-npx supabase db push
+-```
+-
+-### ❌ INCORRECT: Edit Old Migration Files
+-**Never do this:**
+-- ❌ Don't edit previously applied migration files
+-- ❌ Don't expect local file changes to sync to cloud
+-- ❌ Don't manually edit functions in Supabase Dashboard
+-
+-### 🎯 Why This Approach Works
+-- ✅ **Version Control:** Every change is tracked
+-- ✅ **Rollback Capability:** Can revert if needed  
+-- ✅ **Team Sync:** Everyone gets the same changes
+-- ✅ **Production Safety:** No manual edits in cloud
+-- ✅ **Migration History:** Clear timeline of changes
+-
+-### 🚨 Key Understanding: Migration Files ≠ Database Storage
+-**Critical Concept:**
+-- Migration files are **"execute once" instructions**
+-- They are NOT synchronized storage files
+-- Local file edits don't affect cloud database
+-- Only NEW migrations change the database state
+-- File content differences after initial application are **normal**
+-
+----
+-
+-*Remember: Database functions are code - treat them with the same discipline as your application code!*
+diff --git a/supabase-sync-troubleshoot.md b/supabase-sync-troubleshoot.md
+deleted file mode 100644
+index cda6396..0000000
+--- a/supabase-sync-troubleshoot.md
++++ /dev/null
+@@ -1,151 +0,0 @@
+-# Supabase Migration Sync Troubleshooting Guide
+-
+-## 🔍 Migration Drift Detection & Resolution
+-
+-Migration drift occurs when your local schema differs from your remote Supabase database schema. This can happen when:
+-- Manual changes are made in Supabase Dashboard
+-- Direct SQL is run on the database
+-- Migration files get out of sync between environments
+-
+-## 📋 Systematic Troubleshooting Process
+-
+-### Step 1: Check Migration Status
+-```bash
+-npx supabase migration list
+-```
+-**What it shows:** Comparison between local and remote migration versions
+-- ✅ All migrations match = No drift
+-- ❌ Missing migrations = Drift detected
+-
+-### Step 2: Identify Specific Schema Differences
+-```bash
+-npx supabase db diff --schema public
+-```
+-**What it shows:** Exact SQL differences between local and remote schemas
+-- Functions that exist remotely but not locally
+-- Table structure differences
+-- Missing indexes or constraints
+-
+-### Step 3: Resolution Options
+-
+-#### Option A: Pull Remote Changes to Local (Recommended)
+-```bash
+-npx supabase db pull
+-```
+-**Use when:** Remote has changes you want to keep locally
+-**Result:** Creates new migration files with remote changes
+-
+-#### Option B: Push Local Changes to Remote
+-```bash
+-npx supabase db push
+-```
+-**Use when:** Local has the correct/latest changes
+-**Result:** Applies local migrations to remote database
+-
+-#### Option C: Reset and Sync (Nuclear Option - Use Carefully)
+-```bash
+-npx supabase db reset --local
+-npx supabase db push
+-```
+-**Use when:** Complete desync, other methods failed
+-**Warning:** This destroys local database data
+-
+-## 🚨 Common Migration Drift Scenarios
+-
+-### Scenario 1: Function Updated in Dashboard
+-**Symptoms:** Function works in production but differs locally
+-**Solution:** `npx supabase db pull` to sync remote changes
+-
+-### Scenario 2: Migration Files Deleted/Modified
+-**Symptoms:** Migration list shows mismatches
+-**Solution:** Restore missing files or use `npx supabase migration repair`
+-
+-### Scenario 3: Manual SQL Changes
+-**Symptoms:** Schema diff shows unexpected changes
+-**Solution:** Create new migration to formalize changes
+-
+-## ⚡ Best Practices to Prevent Drift
+-
+-### 1. Always Use Migrations
+-- ✅ Create migration files for all schema changes
+-- ❌ Avoid manual changes in Supabase Dashboard
+-- ✅ Use `npx supabase migration new <name>` for changes
+-
+-### 2. Regular Sync Checks
+-```bash
+-# Weekly sync check
+-npx supabase migration list
+-npx supabase db diff --schema public
+-```
+-
+-### 3. Version Control All Migrations
+-- ✅ Commit all migration files to git
+-- ✅ Review migration changes in PRs
+-- ❌ Never ignore migration files in .gitignore
+-
+-### 4. Development Workflow
+-```bash
+-# Before starting work
+-npx supabase db pull
+-
+-# After making changes
+-npx supabase migration new "describe_your_changes"
+-# Edit the migration file
+-npx supabase db push
+-
+-# Commit changes
+-git add supabase/migrations/
+-git commit -m "Add migration: describe_your_changes"
+-```
+-
+-## 🔧 Emergency Recovery Commands
+-
+-### If Migrations Are Completely Broken
+-```bash
+-# 1. Backup current local state
+-npx supabase db dump --file backup.sql
+-
+-# 2. Reset to clean state
+-npx supabase db reset
+-
+-# 3. Pull fresh from remote
+-npx supabase db pull
+-
+-# 4. Apply any new local changes manually
+-```
+-
+-### If Remote Database Is Wrong
+-```bash
+-# 1. Ensure local is correct
+-npx supabase db reset --local
+-npx supabase migration up
+-
+-# 2. Force push to remote
+-npx supabase db push --confirm
+-```
+-
+-## 📊 Monitoring Migration Health
+-
+-### Daily Checks
+-```bash
+-npx supabase migration list | grep -E "(Local|Remote)"
+-```
+-
+-### Weekly Deep Check
+-```bash
+-npx supabase db diff --schema public > schema-diff.sql
+-# Review schema-diff.sql for unexpected changes
+-```
+-
+-## 🎯 Key Takeaways
+-
+-1. **Always pull before pushing** to avoid conflicts
+-2. **Use migration files** for all schema changes
+-3. **Regular monitoring** prevents major drift issues  
+-4. **Backup before major operations** to allow rollback
+-5. **Document all manual changes** in migration comments
+-
+----
+-
+-*Last Updated: 2025-08-09*
+-*For more help: https://supabase.com/docs/guides/cli/local-development*
+diff --git a/supabase/functions/customer-lifecycle-chart/index.ts b/supabase/functions/customer-lifecycle-chart/index.ts
+deleted file mode 100644
+index ee9d427..0000000
+--- a/supabase/functions/customer-lifecycle-chart/index.ts
++++ /dev/null
+@@ -1,190 +0,0 @@
+-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+-
+-const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
+-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+-};
+-
+-interface CustomerLifecycleFilters {
+-  startDate?: string;
+-  endDate?: string;
+-  salesManagerId?: number;
+-}
+-
+-interface LifecycleStage {
+-  stage: string;
+-  customerCount: number;
+-  totalRevenue: number;
+-  percentage: number;
+-}
+-
+-interface MonthlyLifecycleData {
+-  month: string;
+-  stages: LifecycleStage[];
+-}
+-
+-serve(async (req) => {
+-  // Handle CORS preflight requests
+-  if (req.method === 'OPTIONS') {
+-    return new Response(null, { headers: corsHeaders });
+-  }
+-
+-  try {
+-    console.log('🚀 Starting customer lifecycle chart function...');
+-    
+-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+-    console.log('Environment check:', { 
+-      supabaseUrl: supabaseUrl ? 'SET' : 'MISSING',
+-      supabaseKey: supabaseKey ? 'SET' : 'MISSING'
+-    });
+-    
+-    const supabase = createClient(
+-      supabaseUrl ?? '',
+-      supabaseKey ?? ''
+-    );
+-
+-    // Parse request body for filters - standardized pattern
+-    let body;
+-    try {
+-      body = await req.json();
+-      console.log('Request body parsed successfully:', body);
+-    } catch (parseError) {
+-      console.error('Failed to parse request body:', parseError);
+-      throw new Error('Invalid JSON in request body');
+-    }
+-    
+-    const { startDate, endDate, salesManagerId } = body;
+-    console.log('Customer lifecycle chart request with filters:', { startDate, endDate, salesManagerId });
+-
+-    // Call the SQL function with proper parameters
+-    console.log('📊 Calling get_customer_lifecycle_chart function...');
+-    
+-    const rpcParams = {
+-      p_start_date: startDate || null,
+-      p_end_date: endDate || null,
+-      p_manager_id: salesManagerId || null
+-    };
+-    console.log('RPC parameters:', rpcParams);
+-    
+-    const { data: chartResult, error: chartError } = await supabase
+-      .rpc('get_customer_lifecycle_chart', rpcParams);
+-
+-    if (chartError) {
+-      console.error('❌ Error calling get_customer_lifecycle_chart function:');
+-      console.error('Error details:', {
+-        message: chartError.message,
+-        details: chartError.details,
+-        hint: chartError.hint,
+-        code: chartError.code
+-      });
+-      throw new Error(`SQL Function Error: ${chartError.message || chartError}`);
+-    }
+-    
+-    console.log('✅ SQL function call successful');
+-    console.log('Raw chart result:', chartResult);
+-
+-    // Normalize response to handle both object and array shapes
+-    let lifecycleData: MonthlyLifecycleData[] = [];
+-    if (Array.isArray(chartResult)) {
+-      lifecycleData = (chartResult as unknown as MonthlyLifecycleData[]) || [];
+-    } else if (chartResult && typeof chartResult === 'object') {
+-      // If function returns { success, data }
+-      if ('success' in chartResult && chartResult.success === false) {
+-        throw new Error(chartResult.error || 'SQL function returned error');
+-      }
+-      // Prefer chartResult.data if present
+-      lifecycleData = (chartResult as any).data || [];
+-    } else {
+-      lifecycleData = [];
+-    }
+-
+-    console.log('Customer lifecycle chart data retrieved:', lifecycleData?.length || 0, 'months');
+-
+-    // Additional validation and logging
+-    if (lifecycleData.length > 0) {
+-      console.log('Sample month data:', {
+-        month: lifecycleData[0].month,
+-        stageCount: lifecycleData[0].stages?.length || 0,
+-        firstStage: lifecycleData[0].stages?.[0]?.stage || 'N/A'
+-      });
+-
+-      // Validate percentages for the first month (should add up to ~100%)
+-      if (lifecycleData[0].stages) {
+-        const totalPercentage = lifecycleData[0].stages.reduce((sum, stage) => sum + (stage.percentage || 0), 0);
+-        console.log('First month percentage total:', totalPercentage);
+-      }
+-    }
+-
+-    // Get available managers for frontend filter options
+-    const { data: managersData, error: managersError } = await supabase
+-      .from('sales_reps')
+-      .select('sales_rep_id, sales_rep_name')
+-      .is('sales_rep_manager_id', null)
+-      .eq('is_active', true);
+-
+-    if (managersError) {
+-      console.warn('Could not fetch managers data:', managersError);
+-    }
+-
+-    // Get unique lifecycle stages for reference
+-    const { data: uniqueStagesData, error: stagesError } = await supabase
+-      .from('customer_stage_historical')
+-      .select('life_cycle_stage')
+-      .limit(1000);
+-
+-    let availableStages: string[] = [];
+-    if (!stagesError && uniqueStagesData) {
+-      availableStages = [...new Set(uniqueStagesData.map(s => s.life_cycle_stage))];
+-      console.log('Available lifecycle stages:', availableStages);
+-    }
+-
+-    const response = {
+-      success: true,
+-      data: {
+-        chartData: lifecycleData,
+-        availableManagers: managersData || [],
+-        availableStages: availableStages,
+-        metadata: {
+-          totalMonths: lifecycleData.length,
+-          dateRange: {
+-            startDate: startDate,
+-            endDate: endDate
+-          },
+-          filterApplied: {
+-            salesManagerId: salesManagerId
+-          }
+-        }
+-      }
+-    };
+-
+-    return new Response(JSON.stringify(response), {
+-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+-      status: 200,
+-    });
+-
+-  } catch (error) {
+-    console.error('Customer lifecycle chart error:', error);
+-    return new Response(
+-      JSON.stringify({ 
+-        success: false, 
+-        error: error.message,
+-        data: {
+-          chartData: [],
+-          availableManagers: [],
+-          availableStages: [],
+-          metadata: {
+-            totalMonths: 0,
+-            dateRange: { startDate: null, endDate: null },
+-            filterApplied: { salesManagerId: null }
+-          }
+-        }
+-      }),
+-      {
+-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+-        status: 500,
+-      }
+-    );
+-  }
+-});
+diff --git a/supabase/functions/new-deals-tables/index.ts b/supabase/functions/new-deals-tables/index.ts
+index afce6e1..85183e6 100644
+--- a/supabase/functions/new-deals-tables/index.ts
++++ b/supabase/functions/new-deals-tables/index.ts
+@@ -20,8 +20,6 @@ serve(async (req) => {
+     // Parse request body for filters - standardized pattern
+     const { startDate, endDate, salesManagerId } = req.method === 'POST' ? await req.json() : {};
+ 
+-    console.log('🚀 RUNTIME VERIFICATION: Executing new-deals-tables function with filters:', { startDate, endDate, salesManagerId });
+-    console.log('🔧 CONSOLIDATED FUNCTIONS: About to call get_top_deals_with_details, get_lost_opportunities_with_details, get_lost_opportunities_total_value');
+     console.log('🔍 Debug: Received filters:', { startDate, endDate, salesManagerId });
+ 
+     // Call secure PostgreSQL functions instead of complex JavaScript logic
+@@ -60,6 +58,11 @@ serve(async (req) => {
+ 
+     console.log(`✅ Debug: Top deals: ${topDealsResult.data?.length || 0}, Lost: ${lostOpportunitiesResult.data?.length || 0}`);
+ 
++    // Enhanced debugging for total value function
++    console.log('🔍 TOTAL VALUE DEBUG - Raw result:', JSON.stringify(lostTotalValueResult, null, 2));
++    console.log('🔍 TOTAL VALUE DEBUG - Raw data:', lostTotalValueResult.data);
++    console.log('🔍 TOTAL VALUE DEBUG - First item:', lostTotalValueResult.data?.[0]);
++
+     const topDeals = topDealsResult.data || [];
+     const lostOpportunities = lostOpportunitiesResult.data || [];
+     const lostTotalValue = lostTotalValueResult.data?.[0]?.total_value || 0;
+diff --git a/supabase/migrations/20250805172018_remote_schema.sql b/supabase/migrations/20250805172018_remote_schema.sql
+index 6ace88f..3bc25b7 100644
+--- a/supabase/migrations/20250805172018_remote_schema.sql
++++ b/supabase/migrations/20250805172018_remote_schema.sql
+@@ -51,31 +51,22 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp" WITH SCHEMA "extensions";
+ 
+ 
+ 
+--- ==========================================
+--- DANGEROUS FUNCTION REMOVED - SECURITY RISK
+--- ==========================================
+--- This function allows arbitrary SQL execution and poses a critical security risk
+--- Reason: SQL injection vulnerability, unauthorized database access
+--- Date: 2025-08-09
+--- Recommendation: Use parameterized functions instead
+--- ==========================================
+---
+--- CREATE OR REPLACE FUNCTION "public"."execute_sql"("query" "text") RETURNS json
+---     LANGUAGE "plpgsql"
+---     AS $$
+--- DECLARE
+---     result_json json;
+--- BEGIN
+---     -- Execute the user-provided query and aggregate the results into a JSON array
+---     EXECUTE 'SELECT json_agg(t) FROM (' || query || ') t'
+---     INTO result_json;
+---     
+---     RETURN result_json;
+--- END;
+--- $$;
+-
+-
+--- ALTER FUNCTION "public"."execute_sql"("query" "text") OWNER TO "postgres";
++CREATE OR REPLACE FUNCTION "public"."execute_sql"("query" "text") RETURNS json
++    LANGUAGE "plpgsql"
++    AS $$
++DECLARE
++    result_json json;
++BEGIN
++    -- Execute the user-provided query and aggregate the results into a JSON array
++    EXECUTE 'SELECT json_agg(t) FROM (' || query || ') t'
++    INTO result_json;
++    
++    RETURN result_json;
++END;
++$$;
++
++
++ALTER FUNCTION "public"."execute_sql"("query" "text") OWNER TO "postgres";
+ 
+ SET default_tablespace = '';
+ 
+@@ -969,9 +960,9 @@ GRANT USAGE ON SCHEMA "public" TO "service_role";
+ 
+ 
+ 
+--- GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "anon";
+--- GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "authenticated";
+--- GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "service_role";
++GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "anon";
++GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "authenticated";
++GRANT ALL ON FUNCTION "public"."execute_sql"("query" "text") TO "service_role";
+ 
+ 
+ 
+diff --git a/supabase/migrations/20250808135434_add_secure_metrics_functions.sql b/supabase/migrations/20250808135434_add_secure_metrics_functions.sql
+index 037913d..e27bcb6 100644
+--- a/supabase/migrations/20250808135434_add_secure_metrics_functions.sql
++++ b/supabase/migrations/20250808135434_add_secure_metrics_functions.sql
+@@ -1,38 +1,21 @@
+--- ==========================================
+--- LEGACY MIGRATION FILE - FUNCTIONS MOVED
+--- ==========================================
+--- All functions in this file have been moved to topic-specific consolidated files:
+--- - Metrics functions → 20250809140632_metrics_functions_consolidated.sql
+--- - Table functions → 20250809141053_table_functions_consolidated.sql
+--- - Chart functions → 20250809141318_chart_functions_consolidated.sql
+--- 
+--- Reason: Option B function consolidation strategy implementation
+--- Date: 2025-08-09
+--- Status: SUPERSEDED - Use the new consolidated files instead
+--- ==========================================
+---
+--- ORIGINAL COMMENT:
+ -- Add secure PostgreSQL functions to replace dangerous edge function logic
+ -- This migration contains all secure functions for: metrics endpoints and table data endpoints
+ 
+--- ==========================================
+--- MOVED TO: metrics_functions_consolidated.sql
+--- ==========================================
+ -- Function 1: get_deal_metrics (replaces new-deals-metrics edge function logic)
+--- CREATE OR REPLACE FUNCTION get_deal_metrics(
+---     p_start_date date DEFAULT NULL,
+---     p_end_date date DEFAULT NULL,
+---     p_manager_id integer DEFAULT NULL
+--- )
+--- RETURNS TABLE (
+---     leadresponsetime numeric,
+---     conversionrate numeric,
+---     dealcyclelength numeric,
+---     touchpointsperdeal numeric
+--- )
+--- LANGUAGE plpgsql
+--- SECURITY DEFINER
+--- AS $$
++CREATE OR REPLACE FUNCTION get_deal_metrics(
++    p_start_date date DEFAULT NULL,
++    p_end_date date DEFAULT NULL,
++    p_manager_id integer DEFAULT NULL
++)
++RETURNS TABLE (
++    leadresponsetime numeric,
++    conversionrate numeric,
++    dealcyclelength numeric,
++    touchpointsperdeal numeric
++)
++LANGUAGE plpgsql
++SECURITY DEFINER
++AS $$
+ BEGIN
+     RETURN QUERY
+     WITH filtered_reps AS (
+@@ -143,11 +126,8 @@ BEGIN
+ END;
+ $$;
+ 
+--- ==========================================
+--- MOVED TO: metrics_functions_consolidated.sql
+--- ==========================================
+ -- Function 2: get_team_metrics (replaces team-metrics edge function logic)
+--- CREATE OR REPLACE FUNCTION get_team_metrics(
++CREATE OR REPLACE FUNCTION get_team_metrics(
+     p_start_date date DEFAULT NULL,
+     p_end_date date DEFAULT NULL,
+     p_manager_id integer DEFAULT NULL
+@@ -307,291 +287,8 @@ BEGIN
+ END;
+ $$;
+ 
+-
+--- =============================================================================
+--- Customer Lifecycle Chart Function
+--- =============================================================================
+-
+--- Secure PostgreSQL function to get customer lifecycle chart data
+--- Returns monthly composition of customer lifecycle stages with revenue per segment
+-
+-CREATE OR REPLACE FUNCTION get_customer_lifecycle_chart(
+-  p_start_date DATE DEFAULT NULL,
+-  p_end_date DATE DEFAULT NULL,
+-  p_manager_id INTEGER DEFAULT NULL
+-) RETURNS JSON AS $$
+-DECLARE
+-  chart_data JSON;
+-  managed_rep_ids INTEGER[];
+-BEGIN
+-  -- Get managed rep IDs if manager filter is provided
+-  IF p_manager_id IS NOT NULL THEN
+-    SELECT ARRAY_AGG(sales_rep_id) INTO managed_rep_ids
+-    FROM sales_reps 
+-    WHERE sales_rep_manager_id = p_manager_id;
+-    
+-    -- If no reps found, return empty chart data
+-    IF managed_rep_ids IS NULL OR array_length(managed_rep_ids, 1) IS NULL THEN
+-      RETURN json_build_object(
+-        'success', true,
+-        'data', '[]'::json
+-      );
+-    END IF;
+-  END IF;
+-
+-  -- Build chart data: monthly customer lifecycle composition with revenue
+-  WITH date_filtered_customers AS (
+-    -- Get customers in each lifecycle stage per month within date range
+-    SELECT 
+-      DATE_TRUNC('month', csh.activity_date)::date as month,
+-      csh.life_cycle_stage,
+-      csh.customer_id,
+-      -- Get the latest stage record for each customer in each month
+-      ROW_NUMBER() OVER (
+-        PARTITION BY csh.customer_id, DATE_TRUNC('month', csh.activity_date) 
+-        ORDER BY csh.activity_date DESC
+-      ) as rn
+-    FROM customer_stage_historical csh
+-    WHERE (p_start_date IS NULL OR csh.activity_date >= p_start_date)
+-      AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
+-  ),
+-  customer_stages_monthly AS (
+-    -- Keep only the latest stage for each customer per month
+-    SELECT month, life_cycle_stage, customer_id
+-    FROM date_filtered_customers
+-    WHERE rn = 1
+-  ),
+-  revenue_monthly AS (
+-    -- Aggregate revenue by customer and month
+-    SELECT 
+-      DATE_TRUNC('month', r.participation_dt)::date as month,
+-      r.customer_id,
+-      SUM(r.revenue) as total_revenue
+-    FROM revenue r
+-    WHERE (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+-      AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+-      -- Apply manager filter to revenue if provided
+-      AND (p_manager_id IS NULL OR r.sales_rep = ANY(managed_rep_ids))
+-    GROUP BY DATE_TRUNC('month', r.participation_dt), r.customer_id
+-  ),
+-  lifecycle_with_revenue AS (
+-    -- Join customer stages with their revenue for each month
+-    SELECT 
+-      csm.month,
+-      csm.life_cycle_stage,
+-      csm.customer_id,
+-      COALESCE(rm.total_revenue, 0) as customer_revenue
+-    FROM customer_stages_monthly csm
+-    LEFT JOIN revenue_monthly rm ON csm.month = rm.month AND csm.customer_id = rm.customer_id
+-  ),
+-  stage_totals AS (
+-    -- Aggregate by month and lifecycle stage
+-    SELECT 
+-      month,
+-      life_cycle_stage,
+-      COUNT(DISTINCT customer_id) as customer_count,
+-      SUM(customer_revenue) as total_revenue
+-    FROM lifecycle_with_revenue
+-    GROUP BY month, life_cycle_stage
+-  ),
+-  monthly_totals AS (
+-    -- Get total customers per month for percentage calculation
+-    SELECT 
+-      month,
+-      SUM(customer_count) as total_customers_in_month
+-    FROM stage_totals
+-    GROUP BY month
+-  ),
+-  final_data AS (
+-    -- Calculate percentages and format data
+-    SELECT 
+-      st.month,
+-      json_agg(
+-        json_build_object(
+-          'stage', st.life_cycle_stage,
+-          'customerCount', st.customer_count,
+-          'totalRevenue', ROUND(st.total_revenue, 2),
+-          'percentage', CASE 
+-            WHEN mt.total_customers_in_month > 0 
+-            THEN ROUND((st.customer_count::NUMERIC / mt.total_customers_in_month::NUMERIC) * 100, 1)
+-            ELSE 0 
+-          END
+-        ) ORDER BY st.life_cycle_stage
+-      ) as stages
+-    FROM stage_totals st
+-    JOIN monthly_totals mt ON st.month = mt.month
+-    GROUP BY st.month, mt.total_customers_in_month
+-  )
+-  -- Build final JSON response
+-  SELECT json_agg(
+-    json_build_object(
+-      'month', TO_CHAR(month, 'YYYY-MM'),
+-      'stages', stages
+-    ) ORDER BY month
+-  ) INTO chart_data
+-  FROM final_data;
+-
+-  -- Return the chart data
+-  RETURN json_build_object(
+-    'success', true,
+-    'data', COALESCE(chart_data, '[]'::json)
+-  );
+-
+-END;
+-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-
+--- Grant execute permission
+-GRANT EXECUTE ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO authenticated;
+-GRANT EXECUTE ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO service_role;
+-
+--- Add comment for documentation
+-COMMENT ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) IS 'Returns monthly customer lifecycle composition with revenue data for stacked bar chart visualization';
+-
+-
+--- =============================================================================
+--- Customer Lifecycle Chart Function
+--- =============================================================================
+-
+--- Secure PostgreSQL function to get customer lifecycle chart data
+--- Returns monthly composition of customer lifecycle stages with revenue per segment
+-
+-CREATE OR REPLACE FUNCTION get_customer_lifecycle_chart(
+-  p_start_date DATE DEFAULT NULL,
+-  p_end_date DATE DEFAULT NULL,
+-  p_manager_id INTEGER DEFAULT NULL
+-) RETURNS JSON AS $$
+-DECLARE
+-  chart_data JSON;
+-  managed_rep_ids INTEGER[];
+-BEGIN
+-  -- Get managed rep IDs if manager filter is provided
+-  IF p_manager_id IS NOT NULL THEN
+-    SELECT ARRAY_AGG(sales_rep_id) INTO managed_rep_ids
+-    FROM sales_reps 
+-    WHERE sales_rep_manager_id = p_manager_id;
+-    
+-    -- If no reps found, return empty chart data
+-    IF managed_rep_ids IS NULL OR array_length(managed_rep_ids, 1) IS NULL THEN
+-      RETURN json_build_object(
+-        'success', true,
+-        'data', '[]'::json
+-      );
+-    END IF;
+-  END IF;
+-
+-  -- Build chart data: monthly customer lifecycle composition with revenue
+-  WITH date_filtered_customers AS (
+-    -- Get customers in each lifecycle stage per month within date range
+-    SELECT 
+-      DATE_TRUNC('month', csh.activity_date)::date as month,
+-      csh.life_cycle_stage,
+-      csh.customer_id,
+-      -- Get the latest stage record for each customer in each month
+-      ROW_NUMBER() OVER (
+-        PARTITION BY csh.customer_id, DATE_TRUNC('month', csh.activity_date) 
+-        ORDER BY csh.activity_date DESC
+-      ) as rn
+-    FROM customer_stage_historical csh
+-    WHERE (p_start_date IS NULL OR csh.activity_date >= p_start_date)
+-      AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
+-  ),
+-  customer_stages_monthly AS (
+-    -- Keep only the latest stage for each customer per month
+-    SELECT month, life_cycle_stage, customer_id
+-    FROM date_filtered_customers
+-    WHERE rn = 1
+-  ),
+-  revenue_monthly AS (
+-    -- Aggregate revenue by customer and month
+-    SELECT 
+-      DATE_TRUNC('month', r.participation_dt)::date as month,
+-      r.customer_id,
+-      SUM(r.revenue) as total_revenue
+-    FROM revenue r
+-    WHERE (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+-      AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+-      -- Apply manager filter to revenue if provided
+-      AND (p_manager_id IS NULL OR r.sales_rep = ANY(managed_rep_ids))
+-    GROUP BY DATE_TRUNC('month', r.participation_dt), r.customer_id
+-  ),
+-  lifecycle_with_revenue AS (
+-    -- Join customer stages with their revenue for each month
+-    SELECT 
+-      csm.month,
+-      csm.life_cycle_stage,
+-      csm.customer_id,
+-      COALESCE(rm.total_revenue, 0) as customer_revenue
+-    FROM customer_stages_monthly csm
+-    LEFT JOIN revenue_monthly rm ON csm.month = rm.month AND csm.customer_id = rm.customer_id
+-  ),
+-  stage_totals AS (
+-    -- Aggregate by month and lifecycle stage
+-    SELECT 
+-      month,
+-      life_cycle_stage,
+-      COUNT(DISTINCT customer_id) as customer_count,
+-      SUM(customer_revenue) as total_revenue
+-    FROM lifecycle_with_revenue
+-    GROUP BY month, life_cycle_stage
+-  ),
+-  monthly_totals AS (
+-    -- Get total customers per month for percentage calculation
+-    SELECT 
+-      month,
+-      SUM(customer_count) as total_customers_in_month
+-    FROM stage_totals
+-    GROUP BY month
+-  ),
+-  final_data AS (
+-    -- Calculate percentages and format data
+-    SELECT 
+-      st.month,
+-      json_agg(
+-        json_build_object(
+-          'stage', st.life_cycle_stage,
+-          'customerCount', st.customer_count,
+-          'totalRevenue', ROUND(st.total_revenue, 2),
+-          'percentage', CASE 
+-            WHEN mt.total_customers_in_month > 0 
+-            THEN ROUND((st.customer_count::NUMERIC / mt.total_customers_in_month::NUMERIC) * 100, 1)
+-            ELSE 0 
+-          END
+-        ) ORDER BY st.life_cycle_stage
+-      ) as stages
+-    FROM stage_totals st
+-    JOIN monthly_totals mt ON st.month = mt.month
+-    GROUP BY st.month, mt.total_customers_in_month
+-  )
+-  -- Build final JSON response
+-  SELECT json_agg(
+-    json_build_object(
+-      'month', TO_CHAR(month, 'YYYY-MM'),
+-      'stages', stages
+-    ) ORDER BY month
+-  ) INTO chart_data
+-  FROM final_data;
+-
+-  -- Return the chart data
+-  RETURN json_build_object(
+-    'success', true,
+-    'data', COALESCE(chart_data, '[]'::json)
+-  );
+-
+-END;
+-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-
+--- Grant execute permission
+-GRANT EXECUTE ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO authenticated;
+-GRANT EXECUTE ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO service_role;
+-
+--- Add comment for documentation
+-COMMENT ON FUNCTION get_customer_lifecycle_chart(DATE, DATE, INTEGER) IS 'Returns monthly customer lifecycle composition with revenue data for stacked bar chart visualization';
+-
+--- ==========================================
+--- MOVED TO: table_functions_consolidated.sql
+--- ==========================================
+ -- Function 3: get_top_deals_with_details (replaces new-deals-tables edge function logic)
+--- CREATE OR REPLACE FUNCTION get_top_deals_with_details(
++CREATE OR REPLACE FUNCTION get_top_deals_with_details(
+     p_start_date date DEFAULT NULL,
+     p_end_date date DEFAULT NULL,
+     p_manager_id integer DEFAULT NULL
+@@ -673,11 +370,8 @@ BEGIN
+ END;
+ $$;
+ 
+--- ==========================================
+--- MOVED TO: table_functions_consolidated.sql
+--- ==========================================
+ -- Function 4: get_lost_opportunities_with_details (replaces lost opportunities logic)
+--- CREATE OR REPLACE FUNCTION get_lost_opportunities_with_details(
++CREATE OR REPLACE FUNCTION get_lost_opportunities_with_details(
+     p_start_date date DEFAULT NULL,
+     p_end_date date DEFAULT NULL,
+     p_manager_id integer DEFAULT NULL
+@@ -712,8 +406,7 @@ BEGIN
+         SELECT DISTINCT ON (e.customer_id) 
+             e.customer_id,
+             e.event_summary,
+-            e.event_timestamp,
+-            row_number() over (partition by e.customer_id order by e.event_timestamp desc) as rn
++            e.event_timestamp
+         FROM events e
+         INNER JOIN filtered_reps fr ON e.sales_rep_id = fr.sales_rep_id
+         WHERE (
+@@ -754,18 +447,14 @@ BEGIN
+     FROM lost_deals_base ld
+     INNER JOIN customers c ON ld.customer_id = c.customer_id
+     LEFT JOIN latest_events le ON ld.customer_id = le.customer_id
+-    where le.rn = 1
+     ORDER BY ld.deal_value DESC NULLS LAST
+     LIMIT 5;
+     
+ END;
+ $$;
+ 
+--- ==========================================
+--- MOVED TO: table_functions_consolidated.sql
+--- ==========================================
+ -- Function 5: get_lost_opportunities_total_value (get total value of all lost opportunities)
+--- CREATE OR REPLACE FUNCTION get_lost_opportunities_total_value(
++CREATE OR REPLACE FUNCTION get_lost_opportunities_total_value(
+     p_start_date date DEFAULT NULL,
+     p_end_date date DEFAULT NULL,
+     p_manager_id integer DEFAULT NULL
+@@ -812,4 +501,4 @@ BEGIN
+     FROM lost_deals_base ld;
+     
+ END;
+-$$;
++$$;
+\ No newline at end of file
+diff --git a/supabase/migrations/20250809131900_update_customer_lifecycle_chart_function.sql b/supabase/migrations/20250809131900_update_customer_lifecycle_chart_function.sql
+deleted file mode 100644
+index d95a6bb..0000000
+--- a/supabase/migrations/20250809131900_update_customer_lifecycle_chart_function.sql
++++ /dev/null
+@@ -1,154 +0,0 @@
+--- Migration: Update get_customer_lifecycle_chart to correct column names and logic
+--- Safe: CREATE OR REPLACE only; no data changes
+-
+--- Note: Using fully-qualified table names; no search_path change required.
+-
+-CREATE OR REPLACE FUNCTION public.get_customer_lifecycle_chart(
+-  p_start_date DATE DEFAULT NULL,
+-  p_end_date DATE DEFAULT NULL,
+-  p_manager_id INTEGER DEFAULT NULL
+-) RETURNS JSON AS $$
+-DECLARE
+-  chart_data JSON;
+-  managed_rep_ids INTEGER[];
+-BEGIN
+-  -- Get managed rep IDs if manager filter is provided
+-  IF p_manager_id IS NOT NULL THEN
+-    SELECT ARRAY_AGG(sales_rep_id) INTO managed_rep_ids
+-    FROM public.sales_reps 
+-    WHERE sales_rep_manager_id = p_manager_id;
+-
+-    -- If no managed reps found, return empty data
+-    IF managed_rep_ids IS NULL OR array_length(managed_rep_ids, 1) = 0 THEN
+-      SELECT JSON_BUILD_OBJECT(
+-        'success', true,
+-        'data', '[]'::JSON,
+-        'message', 'No managed sales reps found for the specified manager'
+-      ) INTO chart_data;
+-      RETURN chart_data;
+-    END IF;
+-  END IF;
+-
+-  -- Use the proven structure from sql/get_customer_lifecycle_chart_function.sql
+-  WITH date_filtered_customers AS (
+-    SELECT 
+-      DATE_TRUNC('month', csh.activity_date)::date as month,
+-      csh.life_cycle_stage,
+-      csh.customer_id,
+-      ROW_NUMBER() OVER (
+-        PARTITION BY csh.customer_id, DATE_TRUNC('month', csh.activity_date)
+-        ORDER BY csh.activity_date DESC
+-      ) as rn
+-    FROM public.customer_stage_historical csh
+-    WHERE (p_start_date IS NULL OR csh.activity_date >= p_start_date)
+-      AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
+-  ),
+-  customer_stages_monthly AS (
+-    SELECT month, life_cycle_stage, customer_id
+-    FROM date_filtered_customers
+-    WHERE rn = 1
+-  ),
+-  revenue_monthly AS (
+-    SELECT 
+-      DATE_TRUNC('month', r.participation_dt)::date as month,
+-      r.customer_id,
+-      SUM(r.revenue) as total_revenue
+-    FROM public.revenue r
+-    WHERE (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+-      AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+-      AND (p_manager_id IS NULL OR r.sales_rep = ANY(managed_rep_ids))
+-    GROUP BY DATE_TRUNC('month', r.participation_dt), r.customer_id
+-  ),
+-  lifecycle_with_revenue AS (
+-    SELECT 
+-      csm.month,
+-      csm.life_cycle_stage,
+-      csm.customer_id,
+-      COALESCE(rm.total_revenue, 0) as customer_revenue
+-    FROM customer_stages_monthly csm
+-    LEFT JOIN revenue_monthly rm ON csm.month = rm.month AND csm.customer_id = rm.customer_id
+-  ),
+-  stage_totals AS (
+-    SELECT 
+-      month,
+-      life_cycle_stage,
+-      COUNT(DISTINCT customer_id) as customer_count,
+-      SUM(customer_revenue) as total_stage_revenue
+-    FROM lifecycle_with_revenue
+-    GROUP BY month, life_cycle_stage
+-  ),
+-  monthly_totals AS (
+-    SELECT 
+-      month,
+-      SUM(customer_count) as total_customers_in_month
+-    FROM stage_totals
+-    GROUP BY month
+-  ),
+-  final_data AS (
+-    SELECT 
+-      st.month,
+-      st.life_cycle_stage,
+-      st.customer_count,
+-      st.total_stage_revenue,
+-      CASE 
+-        WHEN mt.total_customers_in_month > 0 
+-        THEN ROUND((st.customer_count::NUMERIC / mt.total_customers_in_month::NUMERIC) * 100, 2)
+-        ELSE 0 
+-      END as percentage
+-    FROM stage_totals st
+-    JOIN monthly_totals mt ON st.month = mt.month
+-  )
+-  SELECT JSON_BUILD_OBJECT(
+-    'success', true,
+-    'data', COALESCE(
+-      JSON_AGG(
+-        JSON_BUILD_OBJECT(
+-          'month', TO_CHAR(month, 'YYYY-MM'),
+-          'stages', stages_array
+-        )
+-        ORDER BY month
+-      ), '[]'::JSON
+-    )
+-  ) INTO chart_data
+-  FROM (
+-    SELECT 
+-      month,
+-      JSON_AGG(
+-        JSON_BUILD_OBJECT(
+-          'stage', life_cycle_stage,
+-          'customerCount', customer_count,
+-          'totalRevenue', total_stage_revenue,
+-          'percentage', percentage
+-        )
+-        ORDER BY percentage DESC
+-      ) as stages_array
+-    FROM final_data
+-    GROUP BY month
+-  ) grouped_data;
+-  
+-  -- Ensure non-null response even when no rows are returned
+-  IF chart_data IS NULL THEN
+-    chart_data := JSON_BUILD_OBJECT(
+-      'success', true,
+-      'data', '[]'::JSON
+-    );
+-  END IF;
+-  
+-  RETURN chart_data;
+-
+-EXCEPTION WHEN OTHERS THEN
+-  SELECT JSON_BUILD_OBJECT(
+-    'success', false,
+-    'error', SQLERRM,
+-    'error_detail', SQLSTATE,
+-    'message', 'Error occurred while fetching customer lifecycle chart data'
+-  ) INTO chart_data;
+-  RETURN chart_data;
+-END;
+-$$ LANGUAGE plpgsql SECURITY DEFINER;
+-
+-GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO authenticated;
+-GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO service_role;
+-
+-COMMENT ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER)
+-IS 'Aggregates customer lifecycle stages by month with revenue data for stacked bar chart visualization';
+diff --git a/supabase/migrations/20250809133406_remote_schema.sql b/supabase/migrations/20250809133406_remote_schema.sql
+deleted file mode 100644
+index 8d2c2a6..0000000
+--- a/supabase/migrations/20250809133406_remote_schema.sql
++++ /dev/null
+@@ -1,228 +0,0 @@
+-set check_function_bodies = off;
+-
+-CREATE OR REPLACE FUNCTION public.get_customer_lifecycle_chart(p_start_date date DEFAULT NULL::date, p_end_date date DEFAULT NULL::date, p_manager_id integer DEFAULT NULL::integer)
+- RETURNS json
+- LANGUAGE plpgsql
+- SECURITY DEFINER
+-AS $function$
+-DECLARE
+-  chart_data JSON;
+-  managed_rep_ids INTEGER[];
+-BEGIN
+-  -- Get managed rep IDs if manager filter is provided
+-  IF p_manager_id IS NOT NULL THEN
+-    SELECT ARRAY_AGG(sales_rep_id) INTO managed_rep_ids
+-    FROM sales_reps 
+-    WHERE sales_rep_manager_id = p_manager_id;
+-
+-    -- If no managed reps found, return empty data
+-    IF managed_rep_ids IS NULL OR array_length(managed_rep_ids, 1) = 0 THEN
+-      SELECT JSON_BUILD_OBJECT(
+-        'success', true,
+-        'data', '[]'::JSON,
+-        'message', 'No managed sales reps found for the specified manager'
+-      ) INTO chart_data;
+-      RETURN chart_data;
+-    END IF;
+-  END IF;
+-
+-  -- Use the proven structure from sql/get_customer_lifecycle_chart_function.sql
+-  WITH date_filtered_customers AS (
+-    SELECT 
+-      DATE_TRUNC('month', csh.activity_date)::date as month,
+-      csh.life_cycle_stage,
+-      csh.customer_id,
+-      ROW_NUMBER() OVER (
+-        PARTITION BY csh.customer_id, DATE_TRUNC('month', csh.activity_date)
+-        ORDER BY csh.activity_date DESC
+-      ) as rn
+-    FROM customer_stage_historical csh
+-    WHERE (p_start_date IS NULL OR csh.activity_date >= p_start_date)
+-      AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
+-  ),
+-  customer_stages_monthly AS (
+-    SELECT month, life_cycle_stage, customer_id
+-    FROM date_filtered_customers
+-    WHERE rn = 1
+-  ),
+-  revenue_monthly AS (
+-    SELECT 
+-      DATE_TRUNC('month', r.participation_dt)::date as month,
+-      r.customer_id,
+-      SUM(r.revenue) as total_revenue
+-    FROM revenue r
+-    WHERE (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+-      AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+-      AND (p_manager_id IS NULL OR r.sales_rep = ANY(managed_rep_ids))
+-    GROUP BY DATE_TRUNC('month', r.participation_dt), r.customer_id
+-  ),
+-  lifecycle_with_revenue AS (
+-    SELECT 
+-      csm.month,
+-      csm.life_cycle_stage,
+-      csm.customer_id,
+-      COALESCE(rm.total_revenue, 0) as customer_revenue
+-    FROM customer_stages_monthly csm
+-    LEFT JOIN revenue_monthly rm ON csm.month = rm.month AND csm.customer_id = rm.customer_id
+-  ),
+-  stage_totals AS (
+-    SELECT 
+-      month,
+-      life_cycle_stage,
+-      COUNT(DISTINCT customer_id) as customer_count,
+-      SUM(customer_revenue) as total_stage_revenue
+-    FROM lifecycle_with_revenue
+-    GROUP BY month, life_cycle_stage
+-  ),
+-  monthly_totals AS (
+-    SELECT 
+-      month,
+-      SUM(customer_count) as total_customers_in_month
+-    FROM stage_totals
+-    GROUP BY month
+-  ),
+-  final_data AS (
+-    SELECT 
+-      st.month,
+-      st.life_cycle_stage,
+-      st.customer_count,
+-      st.total_stage_revenue,
+-      CASE 
+-        WHEN mt.total_customers_in_month > 0 
+-        THEN ROUND((st.customer_count::NUMERIC / mt.total_customers_in_month::NUMERIC) * 100, 2)
+-        ELSE 0 
+-      END as percentage
+-    FROM stage_totals st
+-    JOIN monthly_totals mt ON st.month = mt.month
+-  )
+-  SELECT JSON_BUILD_OBJECT(
+-    'success', true,
+-    'data', COALESCE(
+-      JSON_AGG(
+-        JSON_BUILD_OBJECT(
+-          'month', TO_CHAR(month, 'YYYY-MM'),
+-          'stages', stages_array
+-        )
+-        ORDER BY month
+-      ), '[]'::JSON
+-    )
+-  ) INTO chart_data
+-  FROM (
+-    SELECT 
+-      month,
+-      JSON_AGG(
+-        JSON_BUILD_OBJECT(
+-          'stage', life_cycle_stage,
+-          'customerCount', customer_count,
+-          'totalRevenue', total_stage_revenue,
+-          'percentage', percentage
+-        )
+-        ORDER BY percentage DESC
+-      ) as stages_array
+-    FROM final_data
+-    GROUP BY month
+-  ) grouped_data;
+-  
+-  -- Ensure non-null response even when no rows are returned
+-  IF chart_data IS NULL THEN
+-    chart_data := JSON_BUILD_OBJECT(
+-      'success', true,
+-      'data', '[]'::JSON
+-    );
+-  END IF;
+-  
+-  RETURN chart_data;
+-
+-EXCEPTION WHEN OTHERS THEN
+-  SELECT JSON_BUILD_OBJECT(
+-    'success', false,
+-    'error', SQLERRM,
+-    'error_detail', SQLSTATE,
+-    'message', 'Error occurred while fetching customer lifecycle chart data'
+-  ) INTO chart_data;
+-  RETURN chart_data;
+-END;
+-$function$
+-;
+-
+--- ==========================================
+--- DUPLICATE FUNCTION REMOVED - OPTION B CONSOLIDATION
+--- ==========================================
+--- This function has been moved to: 20250809141053_table_functions_consolidated.sql
+--- Reason: Implementing Option B function consolidation strategy
+--- Date: 2025-08-09
+--- ==========================================
+---
+--- CREATE OR REPLACE FUNCTION public.get_lost_opportunities_with_details(p_start_date date DEFAULT NULL::date, p_end_date date DEFAULT NULL::date, p_manager_id integer DEFAULT NULL::integer)
+---  RETURNS TABLE(deal_id integer, deal_value numeric, deal_stage text, customer_name text, event_summary text, event_timestamp timestamp with time zone)
+---  LANGUAGE plpgsql
+---  SECURITY DEFINER
+--- AS $function$
+--- BEGIN
+---     RETURN QUERY
+---     WITH filtered_reps AS (
+---         -- Get sales reps based on manager filter
+---         SELECT sr.sales_rep_id
+---         FROM sales_reps sr
+---         WHERE sr.is_active = true
+---         AND (
+---             p_manager_id IS NULL 
+---             OR sr.sales_rep_manager_id = p_manager_id
+---             OR sr.sales_rep_id = p_manager_id
+---         )
+---     ),
+---     
+---     latest_events AS (
+---         -- Get the latest event per customer within the date range
+---         SELECT DISTINCT ON (e.customer_id) 
+---             e.customer_id,
+---             e.event_summary,
+---             e.event_timestamp
+---         FROM events e
+---         INNER JOIN filtered_reps fr ON e.sales_rep_id = fr.sales_rep_id
+---         WHERE (
+---             p_start_date IS NULL OR e.event_timestamp::date >= p_start_date
+---         ) AND (
+---             p_end_date IS NULL OR e.event_timestamp::date <= p_end_date
+---         )
+---         ORDER BY e.customer_id, e.event_timestamp DESC
+---     ),
+---     
+---     lost_deals_base AS (
+---         -- Get lost opportunities with customer and sales rep filtering
+---         SELECT DISTINCT ON (dh.deal_id)
+---             dh.deal_id,
+---             dh.deal_value,
+---             dh.deal_stage,
+---             dh.customer_id,
+---             dh.activity_date
+---         FROM deal_historical dh
+---         INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+---         WHERE dh.deal_stage IN ('closed_lost', 'lost')
+---         AND (
+---             p_start_date IS NULL OR dh.activity_date::date >= p_start_date
+---         ) AND (
+---             p_end_date IS NULL OR dh.activity_date::date <= p_end_date
+---         )
+---         ORDER BY dh.deal_id, dh.activity_date DESC
+---     )
+---     
+---     -- Final result with customer names and latest events - LIMIT TO TOP 5
+---     SELECT 
+---         ld.deal_id::integer,
+---         ld.deal_value::numeric,
+---         ld.deal_stage::text,
+---         c.customer_name::text,
+---         le.event_summary::text,
+---         le.event_timestamp
+---     FROM lost_deals_base ld
+---     INNER JOIN customers c ON ld.customer_id = c.customer_id
+---     LEFT JOIN latest_events le ON ld.customer_id = le.customer_id
+---     ORDER BY ld.deal_value DESC NULLS LAST
+---     LIMIT 5;
+---     
+--- END;
+--- $function$
+--- ;
+-
+-
+diff --git a/supabase/migrations/20250809140632_metrics_functions_consolidated.sql b/supabase/migrations/20250809140632_metrics_functions_consolidated.sql
+deleted file mode 100644
+index e381244..0000000
+--- a/supabase/migrations/20250809140632_metrics_functions_consolidated.sql
++++ /dev/null
+@@ -1,320 +0,0 @@
+--- ==========================================
+--- METRICS FUNCTIONS CONSOLIDATED
+--- ==========================================
+--- Purpose: All metric calculation functions grouped by purpose
+--- Last Updated: 2025-08-09
+--- Strategy: Option B - Topic-specific function grouping
+--- Dependencies: sales_reps, deal_historical, events, revenue, targets, deals_current
+--- ==========================================
+-
+-set check_function_bodies = off;
+-
+--- ==========================================
+--- Function: get_deal_metrics
+--- ==========================================
+--- Purpose: Calculate comprehensive deal metrics (lead response time, conversion rate, cycle length, touchpoints)
+--- Parameters: 
+---   - p_start_date: Filter start date (optional)
+---   - p_end_date: Filter end date (optional) 
+---   - p_manager_id: Filter by specific manager (optional)
+--- Returns: TABLE with leadresponsetime, conversionrate, dealcyclelength, touchpointsperdeal
+--- Last Updated: 2025-08-09
+--- Dependencies: sales_reps, deal_historical, events
+--- ==========================================
+-
+-CREATE OR REPLACE FUNCTION get_deal_metrics(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL,
+-    p_manager_id integer DEFAULT NULL
+-)
+-RETURNS TABLE (
+-    leadresponsetime numeric,
+-    conversionrate numeric,
+-    dealcyclelength numeric,
+-    touchpointsperdeal numeric
+-)
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-BEGIN
+-    RETURN QUERY
+-    WITH filtered_reps AS (
+-        -- Get sales reps based on manager filter
+-        SELECT sr.sales_rep_id
+-        FROM sales_reps sr
+-        WHERE sr.is_active = true
+-        AND (
+-            p_manager_id IS NULL 
+-            OR sr.sales_rep_manager_id = p_manager_id
+-            OR sr.sales_rep_id = p_manager_id
+-        )
+-    ),
+-    
+-    lead_response_time AS (
+-        -- Calculate average lead response time (prospecting -> qualified)
+-        WITH prospecting_deals AS (
+-            SELECT 
+-                dh.deal_id,
+-                dh.activity_date,
+-                dh.sales_rep_id
+-            FROM deal_historical dh
+-            INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+-            WHERE dh.deal_stage = 'prospecting'
+-            AND (p_start_date IS NULL OR dh.activity_date::date >= p_start_date)
+-            AND (p_end_date IS NULL OR dh.activity_date::date <= p_end_date)
+-        ),
+-        qualified_deals AS (
+-            SELECT 
+-                dh.deal_id,
+-                dh.activity_date,
+-                dh.sales_rep_id
+-            FROM deal_historical dh
+-            INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+-            WHERE dh.deal_stage = 'qualified'
+-        )
+-        SELECT COALESCE(AVG(
+-            EXTRACT(EPOCH FROM (qd.activity_date - pd.activity_date)) / 86400
+-        ), 0) as avg_response_time
+-        FROM prospecting_deals pd
+-        INNER JOIN qualified_deals qd ON pd.deal_id = qd.deal_id
+-        WHERE qd.activity_date >= pd.activity_date
+-    ),
+-    
+-    conversion_metrics AS (
+-        -- Calculate conversion rate (prospecting -> closed_won)
+-        WITH stage_counts AS (
+-            SELECT 
+-                COUNT(CASE WHEN dh.stage = 'prospecting' THEN 1 END) as prospecting_count,
+-                COUNT(CASE WHEN dh.stage = 'closed_won' THEN 1 END) as closed_won_count
+-            FROM deal_historical dh
+-            INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+-        )
+-        SELECT 
+-            CASE 
+-                WHEN prospecting_count > 0 
+-                THEN (closed_won_count::numeric / prospecting_count::numeric) * 100
+-                ELSE 0
+-            END as conversion_rate
+-        FROM stage_counts
+-    ),
+-    
+-    cycle_length AS (
+-        -- Calculate average deal cycle length (prospecting -> closed_won)
+-        WITH deal_stages AS (
+-            SELECT 
+-                dh.deal_id,
+-                MIN(CASE WHEN dh.stage = 'prospecting' THEN dh.stage_change_date END) as prospecting_date,
+-                MAX(CASE WHEN dh.stage = 'closed_won' THEN dh.stage_change_date END) as closed_won_date
+-            FROM deal_historical dh
+-            INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+-            GROUP BY dh.deal_id
+-            HAVING MIN(CASE WHEN dh.stage = 'prospecting' THEN dh.stage_change_date END) IS NOT NULL
+-            AND MAX(CASE WHEN dh.stage = 'closed_won' THEN dh.stage_change_date END) IS NOT NULL
+-        )
+-        SELECT COALESCE(AVG(
+-            EXTRACT(EPOCH FROM (closed_won_date - prospecting_date)) / 86400
+-        ), 0) as avg_cycle_length
+-        FROM deal_stages
+-    ),
+-    
+-    touchpoints AS (
+-        -- Calculate average touchpoints per deal
+-        WITH deal_touchpoints AS (
+-            SELECT 
+-                e.deal_id,
+-                COUNT(*) as touchpoint_count
+-            FROM events e
+-            INNER JOIN filtered_reps fr ON e.sales_rep_id = fr.sales_rep_id
+-            WHERE e.deal_id IS NOT NULL
+-            GROUP BY e.deal_id
+-        )
+-        SELECT COALESCE(AVG(touchpoint_count), 0) as avg_touchpoints
+-        FROM deal_touchpoints
+-    )
+-    
+-    -- Combine all metrics
+-    SELECT 
+-        ROUND(lrt.avg_response_time, 1) as leadresponsetime,
+-        ROUND(cm.conversion_rate, 1) as conversionrate,
+-        ROUND(cl.avg_cycle_length, 0) as dealcyclelength,
+-        ROUND(tp.avg_touchpoints, 0) as touchpointsperdeal
+-    FROM lead_response_time lrt,
+-         conversion_metrics cm,
+-         cycle_length cl,
+-         touchpoints tp;
+-    
+-END;
+-$$;
+-
+--- ==========================================
+--- Function: get_team_metrics  
+--- ==========================================
+--- Purpose: Calculate comprehensive team performance metrics (revenue, targets, conversion rates, efficiency)
+--- Parameters:
+---   - p_start_date: Filter start date (optional)
+---   - p_end_date: Filter end date (optional)
+---   - p_manager_id: Filter by specific manager (optional)
+--- Returns: TABLE with team performance data including momentum and risk analysis
+--- Last Updated: 2025-08-09
+--- Dependencies: sales_reps, revenue, targets, deals_current
+--- ==========================================
+-
+-CREATE OR REPLACE FUNCTION get_team_metrics(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL,
+-    p_manager_id integer DEFAULT NULL
+-)
+-RETURNS TABLE (
+-    team_name text,
+-    team_size integer,
+-    revenue numeric,
+-    target numeric,
+-    target_percentage numeric,
+-    conversion_rate numeric,
+-    efficiency numeric,
+-    momentum text,
+-    risk_level text,
+-    performance_score numeric,
+-    avg_deal_size numeric
+-)
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-BEGIN
+-    RETURN QUERY
+-    WITH managers AS (
+-        -- Get all managers (sales reps with no manager_id) or specific manager
+-        SELECT 
+-            sr.sales_rep_id,
+-            sr.sales_rep_name
+-        FROM sales_reps sr
+-        WHERE sr.is_active = true 
+-        AND sr.sales_rep_manager_id IS NULL
+-        AND (p_manager_id IS NULL OR sr.sales_rep_id = p_manager_id)
+-    ),
+-    
+-    team_members AS (
+-        -- Get all team members including the manager
+-        SELECT 
+-            m.sales_rep_id as manager_id,
+-            m.sales_rep_name as manager_name,
+-            coalesce(tm.sales_rep_id, m.sales_rep_id) as team_member_id,
+-            coalesce(tm.sales_rep_name, m.sales_rep_name) as team_member_name
+-        FROM managers m
+-        LEFT JOIN sales_reps tm ON tm.sales_rep_manager_id = m.sales_rep_id 
+-            AND tm.is_active = true
+-    ),
+-    
+-    team_sizes AS (
+-        -- Calculate team sizes
+-        SELECT 
+-            manager_id,
+-            manager_name,
+-            COUNT(*) as team_size
+-        FROM team_members
+-        GROUP BY manager_id, manager_name
+-    ),
+-    
+-    team_revenue AS (
+-        -- Calculate team revenue with date filters
+-        SELECT 
+-            tm.manager_id,
+-            COALESCE(SUM(r.revenue::numeric), 0) as total_revenue
+-        FROM team_members tm
+-        LEFT JOIN revenue r ON r.sales_rep = tm.team_member_id
+-            AND (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+-            AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+-        GROUP BY tm.manager_id
+-    ),
+-    
+-    team_targets AS (
+-        -- Calculate team targets
+-        SELECT 
+-            tm.manager_id,
+-            COALESCE(SUM(t.target_value::numeric), 0) as total_target
+-        FROM team_members tm
+-        LEFT JOIN targets t ON t.sales_rep_id = tm.team_member_id
+-        GROUP BY tm.manager_id
+-    ),
+-    
+-    team_deals AS (
+-        -- Calculate team deal metrics
+-        SELECT 
+-            tm.manager_id,
+-            COUNT(d.deal_id) as total_deals,
+-            COUNT(CASE WHEN d.deal_stage = 'closed_won' THEN 1 END) as closed_won_deals,
+-            COALESCE(AVG(CASE 
+-                WHEN d.max_deal_potential::numeric > 0 
+-                THEN d.max_deal_potential::numeric 
+-                ELSE NULL 
+-            END), 0) as avg_deal_potential
+-        FROM team_members tm
+-        LEFT JOIN deals_current d ON d.sales_rep_id = tm.team_member_id
+-        GROUP BY tm.manager_id
+-    ),
+-    
+-    calculated_metrics AS (
+-        -- Combine all metrics and calculate derived values
+-        SELECT 
+-            ts.manager_name,
+-            ts.team_size,
+-            tr.total_revenue as revenue,
+-            tt.total_target as target,
+-            -- Target percentage
+-            CASE 
+-                WHEN tt.total_target > 0 THEN (tr.total_revenue / tt.total_target) * 100
+-                ELSE 0 
+-            END as target_percentage,
+-            -- Conversion rate
+-            CASE 
+-                WHEN td.total_deals > 0 THEN (td.closed_won_deals::numeric / td.total_deals::numeric) * 100
+-                ELSE 0 
+-            END as conversion_rate,
+-            -- Efficiency (revenue per deal)
+-            CASE 
+-                WHEN td.total_deals > 0 THEN tr.total_revenue / td.total_deals
+-                ELSE 0 
+-            END as efficiency,
+-            td.avg_deal_potential as avg_deal_size,
+-            td.total_deals,
+-            td.closed_won_deals
+-        FROM team_sizes ts
+-        JOIN team_revenue tr ON tr.manager_id = ts.manager_id
+-        JOIN team_targets tt ON tt.manager_id = ts.manager_id
+-        JOIN team_deals td ON td.manager_id = ts.manager_id
+-    )
+-    
+-    -- Final output with momentum and risk calculations
+-    SELECT 
+-        cm.manager_name::text as team_name,
+-        cm.team_size::integer,
+-        ROUND(cm.revenue, 2) as revenue,
+-        ROUND(cm.target, 2) as target,
+-        ROUND(cm.target_percentage, 1) as target_percentage,
+-        ROUND(cm.conversion_rate, 1) as conversion_rate,
+-        ROUND(cm.efficiency, 2) as efficiency,
+-        -- Momentum calculation
+-        CASE 
+-            WHEN cm.target_percentage >= 110 THEN 'Accelerating'
+-            WHEN cm.target_percentage >= 90 THEN 'Improving'
+-            WHEN cm.target_percentage < 70 THEN 'Declining'
+-            ELSE 'Stable'
+-        END::text as momentum,
+-        -- Risk level calculation
+-        CASE 
+-            WHEN cm.target_percentage >= 90 THEN 'Low'
+-            WHEN cm.target_percentage < 60 THEN 'High'
+-            ELSE 'Medium'
+-        END::text as risk_level,
+-        -- Performance score (weighted: 60% target performance, 40% conversion rate)
+-        ROUND(
+-            GREATEST(0, LEAST(100, 
+-                (cm.target_percentage * 0.6) + (cm.conversion_rate * 0.4)
+-            )), 1
+-        ) as performance_score,
+-        ROUND(cm.avg_deal_size, 2) as avg_deal_size
+-    FROM calculated_metrics cm
+-    ORDER BY cm.manager_name;
+-    
+-END;
+-$$;
+\ No newline at end of file
+diff --git a/supabase/migrations/20250809141053_table_functions_consolidated.sql b/supabase/migrations/20250809141053_table_functions_consolidated.sql
+deleted file mode 100644
+index afd17e5..0000000
+--- a/supabase/migrations/20250809141053_table_functions_consolidated.sql
++++ /dev/null
+@@ -1,264 +0,0 @@
+--- ==========================================
+--- TABLE FUNCTIONS CONSOLIDATED
+--- ==========================================
+--- Purpose: All table data retrieval functions grouped by purpose
+--- Last Updated: 2025-08-09
+--- Strategy: Option B - Topic-specific function grouping
+--- Dependencies: sales_reps, deal_historical, events, customers
+--- ==========================================
+-
+-set check_function_bodies = off;
+-
+--- ==========================================
+--- Function: get_top_deals_with_details
+--- ==========================================
+--- Purpose: Retrieve top 10 active deals with customer names and latest event information
+--- Parameters:
+---   - p_start_date: Filter start date (optional)
+---   - p_end_date: Filter end date (optional) 
+---   - p_manager_id: Filter by specific manager (optional)
+--- Returns: TABLE with deal_id, deal_value, deal_stage, customer_name, event_summary, event_timestamp
+--- Last Updated: 2025-08-09
+--- Dependencies: sales_reps, deal_historical, events, customers
+--- ==========================================
+-
+-CREATE OR REPLACE FUNCTION get_top_deals_with_details(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL,
+-    p_manager_id integer DEFAULT NULL
+-)
+-RETURNS TABLE (
+-    deal_id integer,
+-    deal_value numeric,
+-    deal_stage text,
+-    customer_name text,
+-    event_summary text,
+-    event_timestamp timestamp with time zone
+-)
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-BEGIN
+-    RETURN QUERY
+-    WITH filtered_reps AS (
+-        -- Get sales reps based on manager filter
+-        SELECT sr.sales_rep_id
+-        FROM sales_reps sr
+-        WHERE sr.is_active = true
+-        AND (
+-            p_manager_id IS NULL 
+-            OR sr.sales_rep_manager_id = p_manager_id
+-            OR sr.sales_rep_id = p_manager_id
+-        )
+-    ),
+-    
+-    latest_events AS (
+-        -- Get the latest event per customer within the date range
+-        SELECT DISTINCT ON (e.customer_id) 
+-            e.customer_id,
+-            e.event_summary,
+-            e.event_timestamp
+-        FROM events e
+-        INNER JOIN filtered_reps fr ON e.sales_rep_id = fr.sales_rep_id
+-        WHERE (
+-            p_start_date IS NULL OR e.event_timestamp::date >= p_start_date
+-        ) AND (
+-            p_end_date IS NULL OR e.event_timestamp::date <= p_end_date
+-        )
+-        ORDER BY e.customer_id, e.event_timestamp DESC
+-    ),
+-    
+-    top_deals_base AS (
+-        -- Get top deals (non-closed/lost) with customer and sales rep filtering
+-        SELECT DISTINCT ON (dh.deal_id)
+-            dh.deal_id,
+-            dh.deal_value,
+-            dh.deal_stage,
+-            dh.customer_id,
+-            dh.activity_date
+-        FROM deal_historical dh
+-        INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+-        WHERE dh.deal_stage NOT IN ('closed_lost', 'lost')
+-        AND (
+-            p_start_date IS NULL OR dh.activity_date::date >= p_start_date
+-        ) AND (
+-            p_end_date IS NULL OR dh.activity_date::date <= p_end_date
+-        )
+-        ORDER BY dh.deal_id, dh.activity_date DESC
+-    )
+-    
+-    -- Final result with customer names and latest events
+-    SELECT 
+-        td.deal_id::integer,
+-        td.deal_value::numeric,
+-        td.deal_stage::text,
+-        c.customer_name::text,
+-        le.event_summary::text,
+-        le.event_timestamp
+-    FROM top_deals_base td
+-    INNER JOIN customers c ON td.customer_id = c.customer_id
+-    LEFT JOIN latest_events le ON td.customer_id = le.customer_id
+-    ORDER BY td.deal_value DESC NULLS LAST
+-    LIMIT 10;
+-    
+-END;
+-$$;
+-
+--- ==========================================
+--- Function: get_lost_opportunities_with_details
+--- ==========================================
+--- Purpose: Retrieve top 5 lost opportunities with customer names and latest event information
+--- Parameters:
+---   - p_start_date: Filter start date (optional)
+---   - p_end_date: Filter end date (optional)
+---   - p_manager_id: Filter by specific manager (optional)
+--- Returns: TABLE with deal_id, deal_value, deal_stage, customer_name, event_summary, event_timestamp
+--- Last Updated: 2025-08-09
+--- Dependencies: sales_reps, deal_historical, events, customers
+--- ==========================================
+-
+-CREATE OR REPLACE FUNCTION get_lost_opportunities_with_details(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL,
+-    p_manager_id integer DEFAULT NULL
+-)
+-RETURNS TABLE (
+-    deal_id integer,
+-    deal_value numeric,
+-    deal_stage text,
+-    customer_name text,
+-    event_summary text,
+-    event_timestamp timestamp with time zone
+-)
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-BEGIN
+-    RETURN QUERY
+-    WITH filtered_reps AS (
+-        -- Get sales reps based on manager filter
+-        SELECT sr.sales_rep_id
+-        FROM sales_reps sr
+-        WHERE sr.is_active = true
+-        AND (
+-            p_manager_id IS NULL 
+-            OR sr.sales_rep_manager_id = p_manager_id
+-            OR sr.sales_rep_id = p_manager_id
+-        )
+-    ),
+-    
+-    latest_events AS (
+-        -- Get the latest event per customer within the date range
+-        SELECT DISTINCT ON (e.customer_id) 
+-            e.customer_id,
+-            e.event_summary,
+-            e.event_timestamp,
+-            row_number() over (partition by e.customer_id order by e.event_timestamp desc) as rn
+-        FROM events e
+-        INNER JOIN filtered_reps fr ON e.sales_rep_id = fr.sales_rep_id
+-        WHERE (
+-            p_start_date IS NULL OR e.event_timestamp::date >= p_start_date
+-        ) AND (
+-            p_end_date IS NULL OR e.event_timestamp::date <= p_end_date
+-        )
+-        ORDER BY e.customer_id, e.event_timestamp DESC
+-    ),
+-    
+-    lost_deals_base AS (
+-        -- Get lost opportunities with customer and sales rep filtering
+-        SELECT DISTINCT ON (dh.deal_id)
+-            dh.deal_id,
+-            dh.deal_value,
+-            dh.deal_stage,
+-            dh.customer_id,
+-            dh.activity_date
+-        FROM deal_historical dh
+-        INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+-        WHERE dh.deal_stage IN ('closed_lost', 'lost')
+-        AND (
+-            p_start_date IS NULL OR dh.activity_date::date >= p_start_date
+-        ) AND (
+-            p_end_date IS NULL OR dh.activity_date::date <= p_end_date
+-        )
+-        ORDER BY dh.deal_id, dh.activity_date DESC
+-    )
+-    
+-    -- Final result with customer names and latest events
+-    SELECT 
+-        ld.deal_id::integer,
+-        ld.deal_value::numeric,
+-        ld.deal_stage::text,
+-        c.customer_name::text,
+-        le.event_summary::text,
+-        le.event_timestamp
+-    FROM lost_deals_base ld
+-    INNER JOIN customers c ON ld.customer_id = c.customer_id
+-    LEFT JOIN latest_events le ON ld.customer_id = le.customer_id
+-    WHERE le.rn = 1
+-    ORDER BY ld.deal_value DESC NULLS LAST
+-    LIMIT 5;
+-    
+-END;
+-$$;
+-
+--- ==========================================
+--- Function: get_lost_opportunities_total_value
+--- ==========================================
+--- Purpose: Calculate total value of all lost opportunities (not just top 5)
+--- Parameters:
+---   - p_start_date: Filter start date (optional)
+---   - p_end_date: Filter end date (optional)
+---   - p_manager_id: Filter by specific manager (optional)
+--- Returns: TABLE with total_value numeric
+--- Last Updated: 2025-08-09
+--- Dependencies: sales_reps, deal_historical
+--- ==========================================
+-
+-CREATE OR REPLACE FUNCTION get_lost_opportunities_total_value(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL,
+-    p_manager_id integer DEFAULT NULL
+-)
+-RETURNS TABLE (
+-    total_value numeric
+-)
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-BEGIN
+-    RETURN QUERY
+-    WITH filtered_reps AS (
+-        -- Get sales reps based on manager filter
+-        SELECT sr.sales_rep_id
+-        FROM sales_reps sr
+-        WHERE sr.is_active = true
+-        AND (
+-            p_manager_id IS NULL 
+-            OR sr.sales_rep_manager_id = p_manager_id
+-            OR sr.sales_rep_id = p_manager_id
+-        )
+-    ),
+-    
+-    lost_deals_base AS (
+-        -- Get all lost opportunities with customer and sales rep filtering
+-        SELECT DISTINCT ON (dh.deal_id)
+-            dh.deal_id,
+-            dh.deal_value
+-        FROM deal_historical dh
+-        INNER JOIN filtered_reps fr ON dh.sales_rep_id = fr.sales_rep_id
+-        WHERE dh.deal_stage IN ('closed_lost', 'lost')
+-        AND (
+-            p_start_date IS NULL OR dh.activity_date::date >= p_start_date
+-        ) AND (
+-            p_end_date IS NULL OR dh.activity_date::date <= p_end_date
+-        )
+-        ORDER BY dh.deal_id, dh.activity_date DESC
+-    )
+-    
+-    -- Return total value of all lost opportunities
+-    SELECT 
+-        COALESCE(SUM(ld.deal_value), 0)::numeric as total_value
+-    FROM lost_deals_base ld;
+-    
+-END;
+-$$;
+\ No newline at end of file
+diff --git a/supabase/migrations/20250809141318_chart_functions_consolidated.sql b/supabase/migrations/20250809141318_chart_functions_consolidated.sql
+deleted file mode 100644
+index f39357a..0000000
+--- a/supabase/migrations/20250809141318_chart_functions_consolidated.sql
++++ /dev/null
+@@ -1,171 +0,0 @@
+--- ==========================================
+--- CHART FUNCTIONS CONSOLIDATED
+--- ==========================================
+--- Purpose: All chart and visualization data functions grouped by purpose
+--- Last Updated: 2025-08-09
+--- Strategy: Option B - Topic-specific function grouping
+--- Dependencies: customer_stage_historical, revenue, sales_reps
+--- ==========================================
+-
+-set check_function_bodies = off;
+-
+--- ==========================================
+--- Function: get_customer_lifecycle_chart
+--- ==========================================
+--- Purpose: Generate customer lifecycle chart data with stage distribution and revenue by month
+--- Parameters:
+---   - p_start_date: Filter start date (optional)
+---   - p_end_date: Filter end date (optional)
+---   - p_manager_id: Filter by specific manager (optional)
+--- Returns: JSON with success status, data array containing monthly stage breakdowns
+--- Last Updated: 2025-08-09
+--- Dependencies: customer_stage_historical, revenue, sales_reps
+--- ==========================================
+-
+-CREATE OR REPLACE FUNCTION get_customer_lifecycle_chart(
+-    p_start_date date DEFAULT NULL,
+-    p_end_date date DEFAULT NULL,
+-    p_manager_id integer DEFAULT NULL
+-)
+-RETURNS json
+-LANGUAGE plpgsql
+-SECURITY DEFINER
+-AS $$
+-DECLARE
+-  chart_data JSON;
+-  managed_rep_ids INTEGER[];
+-BEGIN
+-  -- Get managed rep IDs if manager filter is provided
+-  IF p_manager_id IS NOT NULL THEN
+-    SELECT ARRAY_AGG(sales_rep_id) INTO managed_rep_ids
+-    FROM sales_reps 
+-    WHERE sales_rep_manager_id = p_manager_id;
+-
+-    -- If no managed reps found, return empty data
+-    IF managed_rep_ids IS NULL OR array_length(managed_rep_ids, 1) = 0 THEN
+-      SELECT JSON_BUILD_OBJECT(
+-        'success', true,
+-        'data', '[]'::JSON,
+-        'message', 'No managed sales reps found for the specified manager'
+-      ) INTO chart_data;
+-      RETURN chart_data;
+-    END IF;
+-  END IF;
+-
+-  -- Use the proven structure from sql/get_customer_lifecycle_chart_function.sql
+-  WITH date_filtered_customers AS (
+-    SELECT 
+-      DATE_TRUNC('month', csh.activity_date)::date as month,
+-      csh.life_cycle_stage,
+-      csh.customer_id,
+-      ROW_NUMBER() OVER (
+-        PARTITION BY csh.customer_id, DATE_TRUNC('month', csh.activity_date)
+-        ORDER BY csh.activity_date DESC
+-      ) as rn
+-    FROM customer_stage_historical csh
+-    WHERE (p_start_date IS NULL OR csh.activity_date >= p_start_date)
+-      AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
+-  ),
+-  customer_stages_monthly AS (
+-    SELECT month, life_cycle_stage, customer_id
+-    FROM date_filtered_customers
+-    WHERE rn = 1
+-  ),
+-  revenue_monthly AS (
+-    SELECT 
+-      DATE_TRUNC('month', r.participation_dt)::date as month,
+-      r.customer_id,
+-      SUM(r.revenue) as total_revenue
+-    FROM revenue r
+-    WHERE (p_start_date IS NULL OR r.participation_dt >= p_start_date)
+-      AND (p_end_date IS NULL OR r.participation_dt <= p_end_date)
+-      AND (p_manager_id IS NULL OR r.sales_rep = ANY(managed_rep_ids))
+-    GROUP BY DATE_TRUNC('month', r.participation_dt), r.customer_id
+-  ),
+-  lifecycle_with_revenue AS (
+-    SELECT 
+-      csm.month,
+-      csm.life_cycle_stage,
+-      csm.customer_id,
+-      COALESCE(rm.total_revenue, 0) as customer_revenue
+-    FROM customer_stages_monthly csm
+-    LEFT JOIN revenue_monthly rm ON csm.month = rm.month AND csm.customer_id = rm.customer_id
+-  ),
+-  stage_totals AS (
+-    SELECT 
+-      month,
+-      life_cycle_stage,
+-      COUNT(DISTINCT customer_id) as customer_count,
+-      SUM(customer_revenue) as total_stage_revenue
+-    FROM lifecycle_with_revenue
+-    GROUP BY month, life_cycle_stage
+-  ),
+-  monthly_totals AS (
+-    SELECT 
+-      month,
+-      SUM(customer_count) as total_customers_in_month
+-    FROM stage_totals
+-    GROUP BY month
+-  ),
+-  final_data AS (
+-    SELECT 
+-      st.month,
+-      st.life_cycle_stage,
+-      st.customer_count,
+-      st.total_stage_revenue,
+-      CASE 
+-        WHEN mt.total_customers_in_month > 0 
+-        THEN ROUND((st.customer_count::NUMERIC / mt.total_customers_in_month::NUMERIC) * 100, 2)
+-        ELSE 0 
+-      END as percentage
+-    FROM stage_totals st
+-    JOIN monthly_totals mt ON st.month = mt.month
+-  )
+-  SELECT JSON_BUILD_OBJECT(
+-    'success', true,
+-    'data', COALESCE(
+-      JSON_AGG(
+-        JSON_BUILD_OBJECT(
+-          'month', TO_CHAR(month, 'YYYY-MM'),
+-          'stages', stages_array
+-        )
+-        ORDER BY month
+-      ), '[]'::JSON
+-    )
+-  ) INTO chart_data
+-  FROM (
+-    SELECT 
+-      month,
+-      JSON_AGG(
+-        JSON_BUILD_OBJECT(
+-          'stage', life_cycle_stage,
+-          'customerCount', customer_count,
+-          'totalRevenue', total_stage_revenue,
+-          'percentage', percentage
+-        )
+-        ORDER BY percentage DESC
+-      ) as stages_array
+-    FROM final_data
+-    GROUP BY month
+-  ) grouped_data;
+-  
+-  -- Ensure non-null response even when no rows are returned
+-  IF chart_data IS NULL THEN
+-    chart_data := JSON_BUILD_OBJECT(
+-      'success', true,
+-      'data', '[]'::JSON
+-    );
+-  END IF;
+-  
+-  RETURN chart_data;
+-
+-EXCEPTION WHEN OTHERS THEN
+-  SELECT JSON_BUILD_OBJECT(
+-    'success', false,
+-    'error', SQLERRM,
+-    'error_detail', SQLSTATE,
+-    'message', 'Error occurred while fetching customer lifecycle chart data'
+-  ) INTO chart_data;
+-  RETURN chart_data;
+-END;
+-$$;
+\ No newline at end of file
+diff --git a/supabase/migrations/20250809144226_drop_legacy_duplicate_functions.sql b/supabase/migrations/20250809144226_drop_legacy_duplicate_functions.sql
+deleted file mode 100644
+index 673ae62..0000000
+--- a/supabase/migrations/20250809144226_drop_legacy_duplicate_functions.sql
++++ /dev/null
+@@ -1,101 +0,0 @@
+--- ==========================================
+--- DROP LEGACY DUPLICATE FUNCTIONS
+--- ==========================================
+--- Purpose: Remove duplicate functions that were consolidated in Option B strategy
+--- Problem: Local migration comments don't sync to cloud, leaving duplicates active
+--- Solution: Explicitly DROP legacy functions to achieve single source of truth
+--- Date: 2025-08-09
+--- References: 
+---   - Legacy functions moved from: 20250808135434_add_secure_metrics_functions.sql
+---   - New consolidated location: metrics/table/chart_functions_consolidated.sql files
+--- ==========================================
+-
+-set check_function_bodies = off;
+-
+--- ==========================================
+--- DROP METRICS FUNCTIONS (moved to 20250809140632_metrics_functions_consolidated.sql)
+--- ==========================================
+-
+--- Drop legacy get_deal_metrics function
+-DROP FUNCTION IF EXISTS public.get_deal_metrics(
+-    p_start_date date,
+-    p_end_date date, 
+-    p_manager_id integer
+-);
+-
+--- Drop legacy get_team_metrics function  
+-DROP FUNCTION IF EXISTS public.get_team_metrics(
+-    p_start_date date,
+-    p_end_date date,
+-    p_manager_id integer
+-);
+-
+--- ==========================================
+--- DROP TABLE FUNCTIONS (moved to 20250809141053_table_functions_consolidated.sql)
+--- ==========================================
+-
+--- Drop legacy get_top_deals_with_details function
+-DROP FUNCTION IF EXISTS public.get_top_deals_with_details(
+-    p_start_date date,
+-    p_end_date date,
+-    p_manager_id integer
+-);
+-
+--- Drop legacy get_lost_opportunities_with_details function
+-DROP FUNCTION IF EXISTS public.get_lost_opportunities_with_details(
+-    p_start_date date,
+-    p_end_date date,
+-    p_manager_id integer
+-);
+-
+--- Drop legacy get_lost_opportunities_total_value function
+-DROP FUNCTION IF EXISTS public.get_lost_opportunities_total_value(
+-    p_start_date date,
+-    p_end_date date,
+-    p_manager_id integer
+-);
+-
+--- ==========================================
+--- DROP DANGEROUS SECURITY FUNCTIONS
+--- ==========================================
+-
+--- Drop dangerous execute_sql function (SQL injection risk)
+-DROP FUNCTION IF EXISTS public.execute_sql(query text);
+-
+--- ==========================================
+--- VERIFICATION QUERIES
+--- ==========================================
+--- These will confirm the cleanup worked properly
+-
+--- Verify no duplicate functions remain
+-DO $$
+-DECLARE
+-    rec RECORD;
+-BEGIN
+-    -- Log remaining functions for verification
+-    RAISE NOTICE 'SINGLE SOURCE OF TRUTH VERIFICATION:';
+-    RAISE NOTICE 'Functions remaining after cleanup:';
+-    
+-    -- This will show only the consolidated functions should remain
+-    FOR rec IN (
+-        SELECT p.proname as functionname
+-        FROM pg_catalog.pg_proc p
+-        JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+-        WHERE n.nspname = 'public'
+-        AND p.prokind = 'f'
+-        AND p.proname IN (
+-            'get_deal_metrics',
+-            'get_team_metrics', 
+-            'get_top_deals_with_details',
+-            'get_lost_opportunities_with_details',
+-            'get_lost_opportunities_total_value',
+-            'get_customer_lifecycle_chart',
+-            'execute_sql'
+-        )
+-        ORDER BY functionname
+-    ) LOOP
+-        RAISE NOTICE '  ✅ Function found: %', rec.functionname;
+-    END LOOP;
+-    
+-    RAISE NOTICE '🎯 Single source of truth achieved - only consolidated functions remain!';
+-END $$;
+\ No newline at end of file
+diff --git a/verify-functions.sql b/verify-functions.sql
+deleted file mode 100644
+index 53beb9b..0000000
+--- a/verify-functions.sql
++++ /dev/null
+@@ -1,51 +0,0 @@
+--- ==========================================
+--- RUNTIME FUNCTION VERIFICATION QUERIES
+--- ==========================================
+--- Use these queries in Supabase SQL Editor to verify functions are working
+--- Last Updated: 2025-08-09
+--- ==========================================
+-
+--- Test 1: Verify consolidated metrics functions exist and work
+-SELECT 'Testing get_deal_metrics...' as test_name;
+-SELECT * FROM get_deal_metrics() LIMIT 1;
+-
+-SELECT 'Testing get_team_metrics...' as test_name;  
+-SELECT * FROM get_team_metrics() LIMIT 1;
+-
+--- Test 2: Verify consolidated table functions exist and work
+-SELECT 'Testing get_top_deals_with_details...' as test_name;
+-SELECT * FROM get_top_deals_with_details() LIMIT 3;
+-
+-SELECT 'Testing get_lost_opportunities_with_details...' as test_name;
+-SELECT * FROM get_lost_opportunities_with_details() LIMIT 3;
+-
+-SELECT 'Testing get_lost_opportunities_total_value...' as test_name;
+-SELECT * FROM get_lost_opportunities_total_value();
+-
+--- Test 3: Verify consolidated chart functions exist and work
+-SELECT 'Testing get_customer_lifecycle_chart...' as test_name;
+-SELECT get_customer_lifecycle_chart() as chart_data;
+-
+--- Test 4: Verify dangerous function is disabled
+-SELECT 'Testing execute_sql function (should fail)...' as test_name;
+--- This should return an error if properly disabled:
+--- SELECT execute_sql('SELECT 1');
+-
+--- Test 5: Check function definitions in database
+-SELECT 
+-    schemaname,
+-    functionname,
+-    'ACTIVE' as status
+-FROM pg_catalog.pg_proc p
+-JOIN pg_catalog.pg_namespace n ON n.oid = p.pronamespace
+-WHERE n.nspname = 'public'
+-AND p.prokind = 'f'
+-AND functionname IN (
+-    'get_deal_metrics',
+-    'get_team_metrics', 
+-    'get_top_deals_with_details',
+-    'get_lost_opportunities_with_details',
+-    'get_lost_opportunities_total_value',
+-    'get_customer_lifecycle_chart'
+-)
+-ORDER BY functionname;
+diff --git a/windsurf-rules.md b/windsurf-rules.md
+deleted file mode 100644
+index 7e1822f..0000000
+--- a/windsurf-rules.md
++++ /dev/null
+@@ -1,251 +0,0 @@
+-# 📄 windsurf-rules.md
+-
+-**Windsurf Rule Set: TypeScript + React Best Practices**  
+-_Last Updated: 2025-08-05_
+-
+----
+-
+-## 🚀 Overview
+-
+-This ruleset defines enforced conventions and best practices for building modern TypeScript applications using React. These rules help ensure:
+-
+-- Code readability and maintainability
+-- Consistency across components and modules
+-- Alignment with industry best practices
+-- Compatibility with LLM-generated suggestions
+-
+----
+-
+-## 📦 File & Folder Structure
+-
+-✅ **Rules**
+-
+-- Group related components in feature-based folders (e.g. `features/Todo`, `components/ui`, `hooks/`).
+-- Always co-locate `*.test.tsx` and `*.stories.tsx` with component files.
+-- Use kebab-case for folder names: `user-profile`, `dashboard-widgets`.
+-- Use PascalCase for component files: `UserProfile.tsx`.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid deeply nested folder structures beyond 3 levels.
+-- Do not keep multiple components in a single `.tsx` file.
+-
+----
+-
+-## 🔠 Naming Conventions
+-
+-✅ **Rules**
+-
+-- Components: `PascalCase`
+-- Hooks: `useCamelCase`
+-- Props/interfaces: `PascalCase` (`UserProfileProps`)
+-- Functions & variables: `camelCase`
+-- Enums: `PascalCase`
+-- Constants: `UPPER_SNAKE_CASE`
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid generic names like `Component1`, `data`, `temp`.
+-- Never use abbreviations unless widely accepted (`id`, `url`, `API`).
+-
+----
+-
+-## ⚛️ React Best Practices
+-
+-✅ **Rules**
+-
+-- Always type props using `interface` or `type`.
+-- Use functional components with arrow functions.
+-- Use `React.FC` sparingly – prefer explicit typing for props.
+-- Keep components pure and minimal.
+-- Prefer composition over inheritance.
+-- Use `useEffect` with proper dependency arrays.
+-- Use `useCallback`/`useMemo` to avoid unnecessary re-renders.
+-
+-🚫 **Anti-patterns**
+-
+-- Do not use class components.
+-- Avoid side effects inside render.
+-- Do not mutate props or state directly.
+-
+----
+-
+-## 🧪 Testing
+-
+-✅ **Rules**
+-
+-- Write unit tests using [Vitest](https://vitest.dev/) or [Jest](https://jestjs.io/).
+-- Aim for 80%+ code coverage for features.
+-- Co-locate tests with components.
+-- Use testing-library/react for DOM testing.
+-- Mock external API calls and services.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid snapshot tests for components with complex UI.
+-- Never test implementation details (test behavior).
+-
+----
+-
+-## 🧾 Types & Interfaces
+-
+-✅ **Rules**
+-
+-- Prefer `type` for unions and `interface` for objects.
+-- Use optional chaining and nullish coalescing.
+-- Strictly avoid `any`; use `unknown` if type is truly dynamic.
+-- Use generics for reusable utility functions and hooks.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid mixing `type` and `interface` in the same structure.
+-- Never disable TypeScript checks (`// @ts-ignore`) unless documented.
+-
+----
+-
+-## 🎨 Styling
+-
+-✅ **Rules**
+-
+-- Prefer Tailwind CSS or CSS Modules.
+-- Use semantic class naming.
+-- Organize utility classes logically (`p-4 bg-white shadow-md`).
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid inline styles unless dynamic or conditional.
+-- Do not mix multiple styling systems in the same project.
+-
+----
+-
+-## 🧩 Component Design
+-
+-✅ **Rules**
+-
+-- Use presentational + container component separation when needed.
+-- Keep components < 200 lines (split logic or UI as needed).
+-- Use `children` prop for layout wrappers.
+-- Use controlled components for form inputs.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid props drilling – use context or state management when needed.
+-- Do not overload components with both logic and presentation.
+-
+----
+-
+-## ⚙️ State Management
+-
+-✅ **Rules**
+-
+-- Use `useState` for local state.
+-- Use `useReducer` for complex local state logic.
+-- Use React Context for global state or lift state up.
+-- Consider Zustand, Redux Toolkit, or Jotai for larger apps.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid overusing context for high-frequency updates.
+-- Don’t keep unrelated states in the same provider.
+-
+----
+-
+-## 🌐 API Integration
+-
+-✅ **Rules**
+-
+-- Use typed API clients (e.g., Axios with response/request types).
+-- Create dedicated API service modules (`api/user.ts`).
+-- Prefer SWR or React Query for data fetching and caching.
+-- Always validate API responses with Zod or similar.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid fetching data directly inside components (except via hooks).
+-- Never rely on untyped API responses.
+-
+----
+-
+-## 🔍 Linting & Formatting
+-
+-✅ **Rules**
+-
+-- Use `eslint` with `eslint-config-airbnb` or `typescript-eslint`.
+-- Use `prettier` for formatting, integrated with ESLint.
+-- Enable formatting on save in your editor.
+-- Include `.eslintrc`, `.prettierrc`, and `.editorconfig` in the repo.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid committing code with linting or type errors.
+-- Never disable ESLint rules without justification.
+-
+----
+-
+-## 🔐 Security & Performance
+-
+-✅ **Rules**
+-
+-- Sanitize user input before rendering or sending to APIs.
+-- Always use `key` when mapping React elements.
+-- Lazy load heavy components via `React.lazy` and `Suspense`.
+-- Optimize images and use next-gen formats.
+-
+-🚫 **Anti-patterns**
+-
+-- Avoid inline event handlers for complex logic.
+-- Don’t hardcode secrets in code; use environment variables.
+-
+----
+-
+-## 📚 Documentation
+-
+-✅ **Rules**
+-
+-- Write clear JSDoc or TSDoc for exported functions and hooks.
+-- Document API methods and interfaces.
+-- Maintain a `README.md` in each major folder with purpose and usage.
+-
+-🚫 **Anti-patterns**
+-
+-- Don’t rely only on code comments – explain architecture and usage.
+-
+----
+-
+-## 🧠 LLM Code Suggestions
+-
+-✅ **Rules**
+-
+-- Always validate LLM-generated code with linter and type checks.
+-- Refactor generated code for readability and maintainability.
+-- Use LLMs for boilerplate, not core business logic.
+-- Cross-check for outdated patterns or deprecated APIs.
+-
+-🚫 **Anti-patterns**
+-
+-- Don’t copy-paste LLM code without understanding it.
+-- Never bypass validations just to make LLM code “work.”
+-
+----
+-
+-## ✅ Checklist Before PR
+-
+-- [ ] Lint and format pass (`npm run lint && npm run format`)
+-- [ ] All tests pass locally
+-- [ ] TypeScript has no errors (`tsc --noEmit`)
+-- [ ] PR description is clear and links to relevant issue/task
+-- [ ] Code reviewed by at least one team member
+-- [ ] Documentation updated (if needed)
+-
+----
+-
+-## 📎 Appendix
+-
+-**Recommended Tools:**
+-
+-- ESLint + Prettier
+-- React Testing Library + Vitest
+-- React Query / SWR
+-- Zod / Yup for schema validation
+-- Zustand / Redux Toolkit for state management
+-- Tailwind CSS for styling
+\ No newline at end of file
