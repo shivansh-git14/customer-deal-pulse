@@ -163,9 +163,7 @@ EXCEPTION WHEN OTHERS THEN
   RETURN chart_data;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER) TO service_role;
-
 COMMENT ON FUNCTION public.get_customer_lifecycle_chart(DATE, DATE, INTEGER)
 IS 'Aggregates customer lifecycle stages by month with revenue data for stacked bar chart visualization';
