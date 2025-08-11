@@ -1,6 +1,22 @@
 -- Add secure PostgreSQL functions to replace dangerous edge function logic
 
 -- Function 1: get_deal_metrics (replaces new-deals-metrics edge function logic)
+-- CREATE OR REPLACE FUNCTION get_deal_metrics(
+--     p_start_date date DEFAULT NULL,
+--     p_end_date date DEFAULT NULL,
+--     p_manager_id integer DEFAULT NULL
+-- )
+-- RETURNS TABLE (
+--     leadresponsetime numeric,
+--     conversionrate numeric,
+--     dealcyclelength numeric,
+--     touchpointsperdeal numeric
+-- )
+-- LANGUAGE plpgsql
+-- SECURITY DEFINER
+-- AS $$
+-- BEGIN
+--     RETURN QUERY
 CREATE OR REPLACE FUNCTION get_deal_metrics(
     p_start_date date DEFAULT NULL,
     p_end_date date DEFAULT NULL,
