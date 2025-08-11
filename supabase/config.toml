@@ -52,6 +52,8 @@ enabled = true
 [functions]
   [functions.leaderboard-metrics]
     import_map = "./functions/import_map.json"
+  [functions.top-customers]
+    import_map = "./functions/import_map.json"
 
 # Specifies an ordered list of schema files that describe your database.
 # Supports glob patterns relative to supabase directory: "./schemas/*.sql"

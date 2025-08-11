@@ -7,7 +7,6 @@
 -- ==========================================
 
 set check_function_bodies = off;
-
 -- ==========================================
 -- Function: get_deal_metrics
 -- ==========================================
@@ -286,10 +285,8 @@ BEGIN
     
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_team_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_team_metrics(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: get_top_deals_with_details
 -- ==========================================
@@ -371,10 +368,15 @@ BEGIN
     
 END;
 $$;
+<<<<<<< HEAD
+GRANT EXECUTE ON FUNCTION public.get_top_deals_with_details(date, date, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_top_deals_with_details(date, date, integer) TO service_role;
+=======
 
 GRANT EXECUTE ON FUNCTION public.get_top_deals_with_details(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_top_deals_with_details(date, date, integer) TO service_role;
 
+>>>>>>> origin/main
 -- ==========================================
 -- Function: get_lost_opportunities_with_details
 -- ==========================================
@@ -458,10 +460,15 @@ BEGIN
     
 END;
 $$;
+<<<<<<< HEAD
+GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_with_details(date, date, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_with_details(date, date, integer) TO service_role;
+=======
 
 GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_with_details(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_with_details(date, date, integer) TO service_role;
 
+>>>>>>> origin/main
 -- ==========================================
 -- Function: get_lost_opportunities_total_value
 -- ==========================================
@@ -511,10 +518,8 @@ BEGIN
     
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_total_value(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_total_value(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: get_customer_lifecycle_chart
 -- ==========================================
@@ -662,17 +667,18 @@ EXCEPTION WHEN OTHERS THEN
   RETURN chart_data;
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: get_customer_hero_metrics
 -- ==========================================
 
 -- Explicit DROP to handle return type changes safely on existing DBs
 DROP FUNCTION IF EXISTS public.get_customer_hero_metrics(date, date, integer);
+<<<<<<< HEAD
+=======
 
+>>>>>>> origin/main
 CREATE FUNCTION get_customer_hero_metrics(
     p_start_date date DEFAULT NULL,
     p_end_date date DEFAULT NULL,
@@ -852,10 +858,8 @@ BEGIN
     
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_customer_hero_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_customer_hero_metrics(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: debug_customer_hero_data
 -- ==========================================
@@ -955,8 +959,13 @@ BEGIN
     CROSS JOIN sample_revenue sr;
 END;
 $$;
+<<<<<<< HEAD
+GRANT EXECUTE ON FUNCTION public.debug_customer_hero_data(date, date, integer) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.debug_customer_hero_data(date, date, integer) TO service_role;
+=======
 
 GRANT EXECUTE ON FUNCTION public.debug_customer_hero_data(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.debug_customer_hero_data(date, date, integer) TO service_role;
 
+>>>>>>> origin/main
 COMMENT ON FUNCTION public.debug_customer_hero_data(date, date, integer) IS 'Debug function to discover actual lifecycle stages and revenue categories in the data';

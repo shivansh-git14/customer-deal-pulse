@@ -8,7 +8,6 @@
 
 -- Step 1: Drop the existing function (to change return signature)
 DROP FUNCTION IF EXISTS get_customer_hero_metrics(date, date, integer);
-
 -- Step 2: Recreate with extended return type but keep exact working logic
 CREATE FUNCTION get_customer_hero_metrics(
     p_start_date date DEFAULT NULL,
@@ -189,6 +188,5 @@ BEGIN
     
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION get_customer_hero_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_customer_hero_metrics(date, date, integer) TO service_role;
