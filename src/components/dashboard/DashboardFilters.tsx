@@ -1,9 +1,9 @@
-import { Calendar, Filter, Users } from 'lucide-react';
+import { Calendar, Users } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { useDashboard } from '@/contexts/DashboardContext';
 
 export const DashboardFilters = () => {
@@ -29,14 +29,8 @@ export const DashboardFilters = () => {
 
   return (
     <Card className="w-full">
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Filter className="h-5 w-5" />
-          Filters
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <CardContent className="py-3 sm:py-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
           {/* Date Range */}
           <div className="space-y-2">
             <Label htmlFor="start-date" className="flex items-center gap-2">
@@ -87,13 +81,13 @@ export const DashboardFilters = () => {
               </SelectContent>
             </Select>
           </div>
-        </div>
 
-        {/* Clear Filters Button */}
-        <div className="mt-4 flex justify-end">
-          <Button variant="outline" onClick={clearFilters}>
-            Clear Filters
-          </Button>
+          {/* Clear Filters Button - inline on md+ */}
+          <div className="flex md:justify-end">
+            <Button variant="outline" onClick={clearFilters} className="w-full md:w-auto h-10">
+              Clear Filters
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

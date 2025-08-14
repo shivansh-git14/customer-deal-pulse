@@ -39,7 +39,6 @@ BEGIN
         AND (
             p_manager_id IS NULL 
             OR sr.sales_rep_manager_id = p_manager_id
-            OR sr.sales_rep_id = p_manager_id
         )
     ),
     
@@ -451,8 +450,7 @@ BEGIN
         le.event_timestamp
     FROM lost_deals_base ld
     INNER JOIN customers c ON ld.customer_id = c.customer_id
-    LEFT JOIN latest_events le ON ld.customer_id = le.customer_id
-    WHERE le.rn = 1
+    LEFT JOIN latest_events le ON ld.customer_id = le.customer_id AND le.rn = 1
     ORDER BY ld.deal_value DESC NULLS LAST
     LIMIT 5;
     
@@ -673,7 +671,8 @@ GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(date, date, intege
 -- Explicit DROP to handle return type changes safely on existing DBs
 DROP FUNCTION IF EXISTS public.get_customer_hero_metrics(date, date, integer);
 
-CREATE FUNCTION get_customer_hero_metrics(
+-- Update get_customer_hero_metrics CTE (at_risk_customers)
+CREATE OR REPLACE FUNCTION public.get_customer_hero_metrics(
     p_start_date date DEFAULT NULL,
     p_end_date date DEFAULT NULL,
     p_manager_id integer DEFAULT NULL
@@ -694,7 +693,7 @@ SECURITY DEFINER
 AS $$
 BEGIN
     RETURN QUERY
-    WITH filtered_reps AS (
+   WITH filtered_reps AS (
         SELECT sr.sales_rep_id
         FROM sales_reps sr
         WHERE sr.is_active = true
@@ -739,9 +738,7 @@ BEGIN
             AND (p_end_date IS NULL OR csh.activity_date <= p_end_date)
         )
         SELECT 
-            COUNT(CASE WHEN life_cycle_stage IN (
-                'at_risk', 'at-risk', 'atrisk', 'churned', 'churn', 'lost', 'inactive'
-            ) THEN 1 END) as at_risk_count,
+            COUNT(CASE WHEN life_cycle_stage = 'At Risk' THEN 1 END) as at_risk_count,
             COUNT(*) as total_customers
         FROM latest_customer_stages
         WHERE rn = 1
@@ -787,9 +784,7 @@ BEGIN
         WITH customer_revenue_summary AS (
             SELECT 
                 cu.customer_id,
-                SUM(CASE WHEN r.revenue_category IN (
-                    'recurring', 'repeat', 'renewal', 'subscription', 'recurring_revenue'
-                ) THEN r.revenue ELSE 0 END) as repeat_revenue,
+                SUM(CASE WHEN r.revenue_category = 'repeat' THEN r.revenue ELSE 0 END) as repeat_revenue,
                 SUM(r.revenue) as total_revenue
             FROM customer_universe cu
             LEFT JOIN revenue r ON cu.customer_id = r.customer_id
@@ -849,10 +844,10 @@ BEGIN
     CROSS JOIN decision_maker_customers dmc
     CROSS JOIN health_engagement he
     CROSS JOIN revenue_analysis ra;
-    
 END;
 $$;
 
+-- Ensure consistent GRANTs
 GRANT EXECUTE ON FUNCTION public.get_customer_hero_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_customer_hero_metrics(date, date, integer) TO service_role;
 

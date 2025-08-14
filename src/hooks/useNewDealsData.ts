@@ -122,7 +122,11 @@ export function useNewDealsTableData(filters: any) {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
         },
-        body: JSON.stringify({ filters }),
+        body: JSON.stringify({
+          startDate: filters.startDate,
+          endDate: filters.endDate,
+          salesManagerId: filters.salesManagerId,
+        }),
       });
 
       const result = await response.json();
