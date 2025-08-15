@@ -1,4 +1,5 @@
 import { CustomerLifecycleChart } from "@/components/dashboard/CustomerLifecycleChart";
+import { TopCustomersTable } from "@/components/dashboard/TopCustomersTable";
 import { useDashboard } from "@/contexts/DashboardContext";
 import { useCustomerHeroMetrics } from "@/hooks/useCustomerHeroMetrics";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -87,10 +88,7 @@ export function CustomersView() {
             </div>
           </div>
           {/* Top Customers */}
-          <div className="rounded-lg border bg-white p-4">
-            <div className="text-sm font-semibold mb-3">Top Customers</div>
-            <div className="text-sm text-muted-foreground">Table coming next.</div>
-          </div>
+          <TopCustomersTable filters={filters} />
           {/* Top Issues */}
           <div className="rounded-lg border bg-white p-4">
             <div className="text-sm font-semibold mb-3">Top Issues</div>

@@ -11,7 +11,6 @@
 -- ==========================================
 
 set check_function_bodies = off;
-
 -- ==========================================
 -- DROP METRICS FUNCTIONS (moved to 20250809140632_metrics_functions_consolidated.sql)
 -- ==========================================
@@ -22,14 +21,12 @@ DROP FUNCTION IF EXISTS public.get_deal_metrics(
     p_end_date date, 
     p_manager_id integer
 );
-
 -- Drop legacy get_team_metrics function  
 DROP FUNCTION IF EXISTS public.get_team_metrics(
     p_start_date date,
     p_end_date date,
     p_manager_id integer
 );
-
 -- ==========================================
 -- DROP TABLE FUNCTIONS (moved to 20250809141053_table_functions_consolidated.sql)
 -- ==========================================
@@ -40,28 +37,24 @@ DROP FUNCTION IF EXISTS public.get_top_deals_with_details(
     p_end_date date,
     p_manager_id integer
 );
-
 -- Drop legacy get_lost_opportunities_with_details function
 DROP FUNCTION IF EXISTS public.get_lost_opportunities_with_details(
     p_start_date date,
     p_end_date date,
     p_manager_id integer
 );
-
 -- Drop legacy get_lost_opportunities_total_value function
 DROP FUNCTION IF EXISTS public.get_lost_opportunities_total_value(
     p_start_date date,
     p_end_date date,
     p_manager_id integer
 );
-
 -- ==========================================
 -- DROP DANGEROUS SECURITY FUNCTIONS
 -- ==========================================
 
 -- Drop dangerous execute_sql function (SQL injection risk)
 DROP FUNCTION IF EXISTS public.execute_sql(query text);
-
 -- ==========================================
 -- VERIFICATION QUERIES
 -- ==========================================

@@ -181,10 +181,8 @@ BEGIN
     
 END;
 $$;
-
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION get_customer_hero_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_customer_hero_metrics(date, date, integer) TO service_role;
-
 -- Add comment for documentation
 COMMENT ON FUNCTION get_customer_hero_metrics(date, date, integer) IS 'Returns customer health metrics with CORRECTED column names: at-risk rate, decision maker coverage, health/engagement score, and repeat revenue rate';

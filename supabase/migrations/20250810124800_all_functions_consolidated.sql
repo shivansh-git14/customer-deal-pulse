@@ -7,7 +7,6 @@
 -- ==========================================
 
 set check_function_bodies = off;
-
 -- ==========================================
 -- Function: get_deal_metrics
 -- ==========================================
@@ -285,10 +284,8 @@ BEGIN
     
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_team_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_team_metrics(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: get_top_deals_with_details
 -- ==========================================
@@ -509,10 +506,8 @@ BEGIN
     
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_total_value(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_lost_opportunities_total_value(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: get_customer_lifecycle_chart
 -- ==========================================
@@ -660,10 +655,8 @@ EXCEPTION WHEN OTHERS THEN
   RETURN chart_data;
 END;
 $$;
-
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_customer_lifecycle_chart(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: get_customer_hero_metrics
 -- ==========================================
@@ -847,10 +840,11 @@ BEGIN
 END;
 $$;
 
+
 -- Ensure consistent GRANTs
+
 GRANT EXECUTE ON FUNCTION public.get_customer_hero_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_customer_hero_metrics(date, date, integer) TO service_role;
-
 -- ==========================================
 -- Function: debug_customer_hero_data
 -- ==========================================

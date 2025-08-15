@@ -8,7 +8,6 @@
 -- ==========================================
 
 set check_function_bodies = off;
-
 -- ==========================================
 -- Function: get_customer_hero_metrics
 -- ==========================================
@@ -52,7 +51,7 @@ BEGIN
     
     customer_universe AS (
         -- Get the universe of customers based on filters
-        SELECT DISTINCT c.customer_id
+        SELECT DISTINCT c.customer_id, c.customer_name
         FROM customers c
         WHERE EXISTS (
             SELECT 1 FROM customer_stage_historical csh 
@@ -136,7 +135,8 @@ BEGIN
         WITH customer_revenue_summary AS (
             SELECT 
                 cu.customer_id,
-                SUM(case when r.revenue_category = 'recurring' then r.revenue else 0 end) as repeat_revenue,
+                COUNT(DISTINCT r.participation_dt::date) as revenue_dates,
+                SUM(case when r.revenue_category = 'repeat' then r.revenue else 0 end) as repeat_revenue,
                 SUM(r.revenue) as total_revenue
             FROM customer_universe cu
             LEFT JOIN revenue r ON cu.customer_id = r.customer_id
@@ -192,10 +192,8 @@ BEGIN
     
 END;
 $$;
-
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION get_customer_hero_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION get_customer_hero_metrics(date, date, integer) TO service_role;
-
 -- Add comment for documentation
 COMMENT ON FUNCTION get_customer_hero_metrics(date, date, integer) IS 'Returns customer health metrics: at-risk rate, decision maker coverage, health/engagement score, and repeat revenue rate';

@@ -8,7 +8,6 @@
 -- ==========================================
 
 set check_function_bodies = off;
-
 -- ==========================================
 -- Function: get_deal_metrics
 -- ==========================================
@@ -144,7 +143,6 @@ BEGIN
     
 END;
 $$;
-
 -- Consistent grants
 GRANT EXECUTE ON FUNCTION public.get_deal_metrics(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.get_deal_metrics(date, date, integer) TO service_role;

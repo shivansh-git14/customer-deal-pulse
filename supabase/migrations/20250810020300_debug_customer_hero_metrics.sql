@@ -100,10 +100,8 @@ BEGIN
     CROSS JOIN sample_revenue sr;
 END;
 $$;
-
 -- Grant execute permissions
 GRANT EXECUTE ON FUNCTION debug_customer_hero_data(date, date, integer) TO authenticated;
 GRANT EXECUTE ON FUNCTION debug_customer_hero_data(date, date, integer) TO service_role;
-
 -- Add comment
 COMMENT ON FUNCTION debug_customer_hero_data(date, date, integer) IS 'Debug function to discover actual lifecycle stages and revenue categories in the data';
