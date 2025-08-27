@@ -10,10 +10,6 @@ RETURNS TABLE (
     target numeric,
     target_percentage numeric,
     conversion_rate numeric,
-    efficiency numeric,
-    momentum text,
-    risk_level text,
-    performance_score numeric,
     avg_deal_size numeric
 )
 LANGUAGE plpgsql
@@ -109,11 +105,6 @@ BEGIN
                 WHEN td.total_deals > 0 THEN (td.closed_won_deals::numeric / td.total_deals::numeric) * 100
                 ELSE 0 
             END as conversion_rate,
-            -- Efficiency (revenue per deal)
-            CASE 
-                WHEN td.total_deals > 0 THEN tr.total_revenue / td.total_deals
-                ELSE 0 
-            END as efficiency,
             td.avg_deal_potential as avg_deal_size,
             td.total_deals,
             td.closed_won_deals
@@ -123,7 +114,7 @@ BEGIN
         JOIN team_deals td ON td.manager_id = ts.manager_id
     )
     
-    -- Final output with momentum and risk calculations
+    -- Final output
     SELECT 
         cm.manager_name::text as team_name,
         cm.team_size::integer,
@@ -131,26 +122,6 @@ BEGIN
         ROUND(cm.target, 2) as target,
         ROUND(cm.target_percentage, 1) as target_percentage,
         ROUND(cm.conversion_rate, 1) as conversion_rate,
-        ROUND(cm.efficiency, 2) as efficiency,
-        -- Momentum calculation
-        CASE 
-            WHEN cm.target_percentage >= 110 THEN 'Accelerating'
-            WHEN cm.target_percentage >= 90 THEN 'Improving'
-            WHEN cm.target_percentage < 70 THEN 'Declining'
-            ELSE 'Stable'
-        END::text as momentum,
-        -- Risk level calculation
-        CASE 
-            WHEN cm.target_percentage >= 90 THEN 'Low'
-            WHEN cm.target_percentage < 60 THEN 'High'
-            ELSE 'Medium'
-        END::text as risk_level,
-        -- Performance score (weighted: 60% target performance, 40% conversion rate)
-        ROUND(
-            GREATEST(0, LEAST(100, 
-                (cm.target_percentage * 0.6) + (cm.conversion_rate * 0.4)
-            )), 1
-        ) as performance_score,
         ROUND(cm.avg_deal_size, 2) as avg_deal_size
     FROM calculated_metrics cm
     ORDER BY cm.manager_name;
