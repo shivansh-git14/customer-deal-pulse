@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { RepInsightsPanel } from './RepInsightsPanel';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Users, MessageSquare, Eye, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { DashboardFilters } from '@/hooks/useDashboardData';
@@ -19,11 +18,15 @@ interface TeamMetrics {
   target: number;
   target_percentage: number;
   conversion_rate: number;
-  efficiency: number;
-  momentum: 'Accelerating' | 'Improving' | 'Stable' | 'Declining';
-  risk_level: 'Low Risk' | 'Medium Risk' | 'High Risk';
-  performance_score: number;
   avg_deal_size: number;
+  top_issues?: string[];
+  objections_total?: number;
+  objections_handled_total?: number;
+  objection_handling_rate?: number | null;
+  events_with_transcripts?: number;
+  negative_events?: number;
+  negative_sentiment_rate?: number | null;
+  negative_deals_total_value?: number;
 }
 
 export const TeamOverview = ({ filters }: TeamOverviewProps) => {
@@ -42,7 +45,8 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
           body: {
             startDate: filters.startDate,
             endDate: filters.endDate,
-            salesManagerId: filters.salesManagerId
+            salesManagerId: filters.salesManagerId,
+            debug: true
           }
         });
 
@@ -52,6 +56,9 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
         }
 
         console.log('Team metrics response:', data);
+        if (data?.diagnostics) {
+          console.log('Team metrics diagnostics:', data.diagnostics);
+        }
         
         if (data.success) {
           setTeamData(data.data);
@@ -92,31 +99,6 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
     }
   };
 
-  const getMomentumBadge = (momentum: string) => {
-    const variants = {
-      'Accelerating': 'bg-success/10 text-success border-success/20',
-      'Improving': 'bg-info/10 text-info border-info/20',
-      'Stable': 'bg-muted text-muted-foreground',
-      'Declining': 'bg-danger/10 text-danger border-danger/20'
-    };
-    return variants[momentum as keyof typeof variants] || variants.Stable;
-  };
-
-  const getRiskBadge = (risk: string) => {
-    const variants = {
-      'Low Risk': 'bg-success/10 text-success border-success/20',
-      'Medium Risk': 'bg-warning/10 text-warning border-warning/20',
-      'High Risk': 'bg-danger/10 text-danger border-danger/20'
-    };
-    return variants[risk as keyof typeof variants] || variants['Low Risk'];
-  };
-
-  const getPerformanceColor = (score: number) => {
-    if (score >= 85) return 'bg-success text-success-foreground';
-    if (score >= 70) return 'bg-warning text-warning-foreground';
-    return 'bg-danger text-danger-foreground';
-  };
-
   if (isLoading) {
     return (
       <Card className="w-full">
@@ -154,17 +136,16 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                 <TableHead className="font-semibold text-foreground">Revenue</TableHead>
                 <TableHead className="font-semibold text-foreground">Target %</TableHead>
                 <TableHead className="font-semibold text-foreground">Conversion</TableHead>
-                <TableHead className="font-semibold text-foreground">Efficiency</TableHead>
-                <TableHead className="font-semibold text-foreground">Momentum</TableHead>
-                <TableHead className="font-semibold text-foreground">Risk Level</TableHead>
-                <TableHead className="font-semibold text-foreground">Performance</TableHead>
+                <TableHead className="font-semibold text-foreground">Objection Handling</TableHead>
+                <TableHead className="font-semibold text-foreground">Neg. Sentiment</TableHead>
+                <TableHead className="font-semibold text-foreground">Top Issues</TableHead>
                 <TableHead className="font-semibold text-foreground">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {teamData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                     No team data available for the selected filters
                   </TableCell>
                 </TableRow>
@@ -202,20 +183,52 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                         </div>
                       </TableCell>
                       <TableCell>{team.conversion_rate.toFixed(1)}%</TableCell>
-                      <TableCell>{team.efficiency.toFixed(2)}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getMomentumBadge(team.momentum)}>
-                          {team.momentum}
-                        </Badge>
+                        <div className="min-w-[160px]">
+                          {team.objection_handling_rate !== null && team.objection_handling_rate !== undefined && (team.objections_total ?? 0) > 0 ? (
+                            <span className="font-medium text-foreground">
+                              {team.objection_handling_rate.toFixed(1)}%{' '}
+                              <span className="text-muted-foreground font-normal">
+                                of {team.objections_total ?? 0} {(team.objections_total ?? 0) === 1 ? 'objection' : 'objections'}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={getRiskBadge(team.risk_level)}>
-                          {team.risk_level}
-                        </Badge>
+                        <div className="min-w-[160px]">
+                          {team.negative_sentiment_rate !== null && team.negative_sentiment_rate !== undefined && (team.events_with_transcripts ?? 0) > 0 ? (
+                            <span className="font-medium text-foreground">
+                              {team.negative_sentiment_rate.toFixed(1)}%{' '}
+                              <span className="text-muted-foreground font-normal">
+                                of {team.events_with_transcripts ?? 0} {(team.events_with_transcripts ?? 0) === 1 ? 'call' : 'calls'}
+                              </span>
+                            </span>
+                          ) : (
+                            <span className="text-muted-foreground">—</span>
+                          )}
+                          <div className="text-xs text-muted-foreground mt-1">
+                            {formatCurrency(team.negative_deals_total_value ?? 0)} negative deal value
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className={`h-6 w-6 rounded-full flex items-center justify-center text-xs font-bold ${getPerformanceColor(team.performance_score)}`}>
-                          {team.performance_score}
+                        <div className="min-w-[140px]">
+                          <div className="flex flex-col gap-1">
+                            {(team.top_issues?.filter(Boolean).slice(0, 3) || []).map((issue, i) => (
+                              <span
+                                key={`${team.team_name}-issue-${i}`}
+                                className="inline-flex w-auto self-start items-start px-2 py-0.5 rounded border text-xs text-foreground whitespace-nowrap"
+                              >
+                                {issue}
+                              </span>
+                            ))}
+                            {(!team.top_issues || team.top_issues.length === 0) && (
+                              <span className="text-muted-foreground text-sm">—</span>
+                            )}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
@@ -229,8 +242,8 @@ export const TeamOverview = ({ filters }: TeamOverviewProps) => {
                     </TableRow>
                     {expandedIndex === index && (
                       <TableRow key={`${team.team_name}-details`}>
-                        <TableCell colSpan={9}>
-                          <RepInsightsPanel />
+                        <TableCell colSpan={8}>
+                          <RepInsightsPanel teamName={team.team_name} filters={filters} />
                         </TableCell>
                       </TableRow>
                     )}

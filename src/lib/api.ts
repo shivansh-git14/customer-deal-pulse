@@ -7,12 +7,15 @@ import type { DashboardFilters } from '@/hooks/useDashboardData';
  * @returns A promise that resolves to the team metrics data.
  */
 export const getTeamMetrics = async (filters: DashboardFilters) => {
+  const isDev = typeof import.meta !== 'undefined' && (import.meta as any).env && (import.meta as any).env.DEV
   const { data, error } = await supabase.functions.invoke('team-metrics', {
     body: {
       startDate: filters.startDate,
       endDate: filters.endDate,
       salesManagerId: filters.salesManagerId,
+      debug: !!isDev,
     },
+    headers: isDev ? { 'x-debug': '1' } : undefined,
   });
 
   if (error) {
